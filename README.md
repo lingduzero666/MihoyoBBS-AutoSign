@@ -1,0 +1,87 @@
+# MihoyoBBS-AutoSign
+自动完成 『崩坏3福利补给』『原神签到福利』『米游币任务』『各频道升级任务』  
+(先写完了自己的需求,其他功能再说.....咕咕咕)
+
+本人新手，代码是花了三四天的时间边学习边写出来的，因为是完全零基础自学的，写的很菜还望见谅
+
+本项目部分内容参考了[XiaoMiku01/miyoubiAuto](https://github.com/XiaoMiku01/miyoubiAuto)进行编写  
+感谢大佬的无私分享！！  
+
+**为了大家的安全使用，请勿在B站、QQ、各大社交软件、论坛等任何公共平台传播！**
+***
+## 使用前请先安装第三方库
+```shell
+pip3 install requests
+```
+***
+## 使用方法
+**务必使用python3运行**  
+
+1. 下载源码
+
+2. 在config.json中填写米游社Cookie  
+    `“Game_Cookie”` 填入从 [https://bbs.mihoyo.com/ys/](https://bbs.mihoyo.com/ys/) 获取的Cookie  
+    `"BBS_Cookie"` 填入从 [https://user.mihoyo.com/](https://user.mihoyo.com/) 获取的Cookie
+
+3. 运行mhy.py  
+    ```shell
+    python3 mhy.py
+    ```
+***
+## 获取Cookie方法
+
+1. 打开你的浏览器,进入**无痕模式**, edge为**新建InPrivate窗口**
+
+2. 打开 **使用方法** 中指定的链接并登录
+
+3. 登录完成后按下键盘上的`F12`或右键检查以进入开发者工具,点击Console或者控制台
+
+4. 输入
+
+   ```javascript
+   var cookie=document.cookie;var ask=confirm('Cookie:'+cookie+'\n\nDo you want to copy the cookie to the clipboard?');if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}
+   ```
+
+   回车执行，点击确定后Cookie将自动复制到你的剪贴板上
+
+***
+## 自定义设置
+修改`config.json`以自定义需求，`true`为开启`false`为关闭  
+**注意拼写、大小写、json格式**  
+**注意拼写、大小写、json格式**  
+**注意拼写、大小写、json格式**  
+
+- `"Delay"` 控制是否启用随机延迟
+
+- `"Bar"` 控制是否启用进度条(只推荐测试时打开)
+
+- `“Enable”` 内的各项控制是否启用相关功能  
+    - `"BH3"` 控制是否自动签到『崩坏3福利补给』
+    - `"YS"` 控制是否自动签到『原神签到福利』
+    - `"BBS"` 控制是否自动签到『米游币任务』『各频道升级任务』
+
+- `"Game_BlackList"` 内的为不想签到的UID (游戏内的)
+    - `"BH3"` 内为『崩坏3』的UID
+    - `"YS"` 内为『原神』的UID
+
+- `"BBS_WhiteList"` 内的为想要签到的米游社频道,可以删除不想要签到的频道  
+    *温馨提示：为防止日后修改时打错名字，建议通过在不想要签到的频道名字前打个 1 以屏蔽*
+
+***
+## 需要使用UpDataCookie.py的情况(**一般用不到**)
+
+1. 抓取Cookie后需要测试Cookie有效性时使用
+
+2. 抓取Cookie后暂时不运行脚本时使用  
+    （因为抓取`"BBS_Cookie"`的有效期很短，其在脚本中的实际作用只是获取长期有效的stuid和stoken，所以该情况需要通过此文件手动获取stuid和stoken并写入cookie.json文件中）  
+    PS:此结论仅为我自己账号的测试情况，之后会多测试几个账号验证的
+
+3. 使用云函数时，请先在本地运行此文件以获取login_ticket、stuid和stoken，然后再上传  
+    (虽然**目前不支持云函数**，但是先写出来再说)
+
+- 运行指令
+    ```shell
+    python3 UpDataCookie.py
+    ```
+# LICENSE
+[GNU General Public License v3.0](https://github.com/lingduzero666/MihoyoBBS-AutoSign/blob/main/LICENSE)

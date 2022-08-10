@@ -1,0 +1,21 @@
+{
+    "Game_Cookie": "",
+
+    "BBS_Cookie": "",
+
+    "Delay": true, 
+    "Bar": false,
+
+    "Enable": {
+        "BH3": true,
+        "YS": true,
+        "BBS": true
+    },
+
+    "Game_BlackList": {
+        "BH3": [""], 
+        "YS": [""]
+    }, 
+    
+    "BBS_WhiteList": ["崩坏2","崩坏3","原神","大别野","星穹铁道","绝区零","未定事件簿"]
+}
