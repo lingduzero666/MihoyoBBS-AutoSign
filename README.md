@@ -61,10 +61,6 @@ pip3 install requests
     - `"BH3"` 内为『崩坏3』的UID
     - `"YS"` 内为『原神』的UID
 
-- `"BBS_WhiteList"` 内的为想要签到的米游社频道,可以删除不想要签到的频道  
-    *温馨提示：为防止日后修改时打错名字，更加建议通过在不想要签到的频道名字前打个 1 以屏蔽*
-
-
 ## 需要使用UpDataCookie.py的情况(**一般用不到**)
 
 1. 抓取Cookie后需要测试Cookie有效性时使用
@@ -82,7 +78,8 @@ pip3 install requests
     ```
 
 ## 主要更新记录
-- 2022/8/17  重构了米游币签到部分的代码，当出现 {'data': None, 'message': '帖子不存在', 'retcode': -1} 报错时会跳过该帖子，更加智能
+- 2022/8/17  更新：通过api获取 “我的频道” 的信息，不再需要用白名单排除不需要的频道
+- 2022/8/17  重构：米游币签到部分的代码，当出现 {'data': None, 'message': '帖子不存在', 'retcode': -1} 报错时会跳过该帖子，更加智能
 
 ## LICENSE
 请遵守开源协议 [GNU General Public License v3.0](https://github.com/lingduzero666/MihoyoBBS-AutoSign/blob/main/LICENSE)

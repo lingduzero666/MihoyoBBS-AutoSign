@@ -199,6 +199,7 @@ class MiYouBi(object):
     Detail_url = "https://bbs-api.mihoyo.com/post/api/getPostFull?post_id={}"
     Share_url = "https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_id={}&entity_type=1"
     Vote_url = "https://bbs-api.mihoyo.com/apihub/sapi/upvotePost"  # POST json 
+    UserBusinesses_url = "https://bbs-api.mihoyo.com/user/api/getUserBusinesses?uid={}" #获取"我的频道"信息
 
     #米游社分区
     BBS_List = [
@@ -250,7 +251,7 @@ class MiYouBi(object):
         self.LoginTicket = self.LoadCookie()["login_ticket"]
         self.stuid = self.LoadCookie()["stuid"]
         self.stoken = self.LoadCookie()["stoken"]
-        self.BBS_WhiteList = LoadConfig()["BBS_WhiteList"]
+        self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
             log.info("更新Cookie数据中......")
@@ -328,9 +329,14 @@ class MiYouBi(object):
             self.Cleared()
             sys.exit()
 
+    def UserBusinesses(self):
+        response = requests.get(url=self.UserBusinesses_url.format(self.stuid), headers=self.header())
+        data = json.loads(response.text.encode('utf-8'))
+        return data
+
     def SignIn(self):
         for i in self.BBS_List:
-            if i["name"] in self.BBS_WhiteList:
+            if i["id"] in self.BBS_WhiteList:
                 response = requests.post(url=self.Sign_url.format(i["id"]), headers=self.header())
                 data = json.loads(response.text.encode('utf-8'))
                 if "登录失效，请重新登录" not in data["message"]:
@@ -355,6 +361,7 @@ class MiYouBi(object):
         #看帖3篇
         Success = 0
         Count = 0
+        log.info('浏览3篇帖子中......')
         while Success < 3 and Count < PostSum:
             response = requests.get(url=self.Detail_url.format(List[Count]), headers=self.header())
             data = json.loads(response.text.encode('utf-8'))
@@ -377,6 +384,7 @@ class MiYouBi(object):
         #点赞5篇
         Success = 0
         Count = 0
+        log.info('点赞5篇帖子中......')
         while Success < 5 and Count < PostSum:
             response = requests.post(url=self.Vote_url, headers=self.header(),json={"post_id": List[Count], "is_cancel": False})
             data = json.loads(response.text.encode('utf-8'))
@@ -399,6 +407,7 @@ class MiYouBi(object):
         #分享1篇
         Success = 0
         Count = 0
+        log.info('分享1篇帖子中......')
         while Success < 1 and Count < PostSum:
             response = requests.get(url=self.Share_url.format(List[Count]), headers=self.header())
             data = json.loads(response.text.encode('utf-8'))
@@ -451,8 +460,6 @@ class MiYouBi(object):
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
                 sys.exit()
 
-
-
     def run(self):
         log.info("开始执行讨论区签到......")
         self.SignIn()
@@ -464,7 +471,7 @@ class MiYouBi(object):
         if Enable["Channel"]:
             log.info('开始执行各频道升级任务......')
             for channel in self.BBS_List:
-                if channel["name"] in self.BBS_WhiteList:
+                if channel["id"] in self.BBS_WhiteList:
                     self.Channel(channel)
 
 
@@ -473,7 +480,7 @@ if __name__ == '__main__':
     Game_BlackList = LoadConfig()["Game_BlackList"]
     Enable = LoadConfig()["Enable"]
 
-    log.info('欢迎使用  MihoyoBBS-AutoSign v1.1')
+    log.info('欢迎使用 MihoyoBBS-AutoSign v1.1')
     if delay:
         log.info('已启用随机延迟,请耐心等待')
 
