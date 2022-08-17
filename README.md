@@ -28,7 +28,7 @@ pip3 install requests
 
 ## 获取Cookie方法
 
-1. 打开你的浏览器,进入**无痕模式**, edge为**新建InPrivate窗口**
+1. 打开你的浏览器,进入**无痕模式** , edge为**新建InPrivate窗口**
 
 2. 打开 **使用方法** 中指定的链接并登录
 
@@ -40,7 +40,7 @@ pip3 install requests
    var cookie=document.cookie;var ask=confirm('要复制该cookie到剪贴板吗?\n\n'+cookie);if(ask==true){copy(cookie);msg=cookie}
    ```
 
-   回车执行，点击确定后Cookie将自动复制到你的剪贴板上
+   回车执行，然后网页会出现确认窗口，点击确定后Cookie将复制到你的剪贴板上
 
 
 ## 自定义设置
@@ -51,19 +51,18 @@ pip3 install requests
 
 - `"Delay"` 控制是否启用随机延迟
 
-- `"Bar"` 控制是否启用进度条(只推荐测试时打开)
-
 - `“Enable”` 内的各项控制是否启用相关功能  
     - `"BH3"` 控制是否自动签到『崩坏3福利补给』
     - `"YS"` 控制是否自动签到『原神签到福利』
-    - `"BBS"` 控制是否自动签到『米游币任务』『各频道升级任务』
+    - `"BBS"` 控制是否执行『米游币任务』
+    - `"Channel"` 控制是否执行『各频道升级任务』
 
-- `"Game_BlackList"` 内的为不想签到的UID (游戏内的)
+- `"Game_BlackList"` 内的为不想签到的UID (是游戏内的UID)
     - `"BH3"` 内为『崩坏3』的UID
     - `"YS"` 内为『原神』的UID
 
 - `"BBS_WhiteList"` 内的为想要签到的米游社频道,可以删除不想要签到的频道  
-    *温馨提示：为防止日后修改时打错名字，建议通过在不想要签到的频道名字前打个 1 以屏蔽*
+    *温馨提示：为防止日后修改时打错名字，更加建议通过在不想要签到的频道名字前打个 1 以屏蔽*
 
 
 ## 需要使用UpDataCookie.py的情况(**一般用不到**)
