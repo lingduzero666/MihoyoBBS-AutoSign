@@ -2,18 +2,16 @@
 自动完成 『崩坏3福利补给』『原神签到福利』『米游币任务』『各频道升级任务』  
 (先写完了自己的需求,其他功能再说.....咕咕咕)
 
-本人新手，代码是花了三四天的时间边学习边写出来的，因为是完全零基础自学的，写的很菜还望见谅
-
-本项目部分内容参考了[XiaoMiku01/miyoubiAuto](https://github.com/XiaoMiku01/miyoubiAuto)进行编写  
+本项目‘米游币签到’的一部分内容参考了[XiaoMiku01/miyoubiAuto](https://github.com/XiaoMiku01/miyoubiAuto)进行编写  
 感谢大佬的无私分享！！  
 
 **为了大家的安全使用，请勿在B站、QQ、各大社交软件、论坛等任何公共平台传播！**
-***
+
 ## 使用前请先安装第三方库
 ```shell
 pip3 install requests
 ```
-***
+
 ## 使用方法
 **务必使用python3运行**  
 
@@ -27,7 +25,7 @@ pip3 install requests
     ```shell
     python3 mhy.py
     ```
-***
+
 ## 获取Cookie方法
 
 1. 打开你的浏览器,进入**无痕模式**, edge为**新建InPrivate窗口**
@@ -39,12 +37,12 @@ pip3 install requests
 4. 输入
 
    ```javascript
-   var cookie=document.cookie;var ask=confirm('Cookie:'+cookie+'\n\nDo you want to copy the cookie to the clipboard?');if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}
+   var cookie=document.cookie;var ask=confirm('要复制该cookie到剪贴板吗?\n\n'+cookie);if(ask==true){copy(cookie);msg=cookie}
    ```
 
    回车执行，点击确定后Cookie将自动复制到你的剪贴板上
 
-***
+
 ## 自定义设置
 修改`config.json`以自定义需求，`true`为开启`false`为关闭  
 **注意拼写、大小写、json格式**  
@@ -67,13 +65,13 @@ pip3 install requests
 - `"BBS_WhiteList"` 内的为想要签到的米游社频道,可以删除不想要签到的频道  
     *温馨提示：为防止日后修改时打错名字，建议通过在不想要签到的频道名字前打个 1 以屏蔽*
 
-***
+
 ## 需要使用UpDataCookie.py的情况(**一般用不到**)
 
 1. 抓取Cookie后需要测试Cookie有效性时使用
 
 2. 抓取Cookie后暂时不运行脚本时使用  
-    （因为抓取`"BBS_Cookie"`的有效期很短，其在脚本中的实际作用只是获取长期有效的stuid和stoken，所以该情况需要通过此文件手动获取stuid和stoken并写入cookie.json文件中）  
+    （因为抓取到的`"BBS_Cookie"`有效期很短，其在脚本中的实际作用只是获取长期有效的stuid和stoken，所以该情况需要通过此文件手动获取stuid和stoken并写入cookie.json文件中）  
     PS:此结论仅为我自己账号的测试情况，之后会多测试几个账号验证的
 
 3. 使用云函数时，请先在本地运行此文件以获取login_ticket、stuid和stoken，然后再上传  
@@ -83,5 +81,9 @@ pip3 install requests
     ```shell
     python3 UpDataCookie.py
     ```
-# LICENSE
-[GNU General Public License v3.0](https://github.com/lingduzero666/MihoyoBBS-AutoSign/blob/main/LICENSE)
+
+## 主要更新记录
+- 2022/8/17  重构了米游币签到部分的代码，当出现 {'data': None, 'message': '帖子不存在', 'retcode': -1} 报错时会跳过该帖子，更加智能
+
+## LICENSE
+请遵守开源协议 [GNU General Public License v3.0](https://github.com/lingduzero666/MihoyoBBS-AutoSign/blob/main/LICENSE)

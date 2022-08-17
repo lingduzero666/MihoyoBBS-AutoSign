@@ -4,12 +4,12 @@
     "BBS_Cookie": "",
 
     "Delay": true, 
-    "Bar": false,
 
     "Enable": {
         "BH3": true,
         "YS": true,
-        "BBS": true
+        "BBS": true,
+        "Channel": true
     },
 
     "Game_BlackList": {

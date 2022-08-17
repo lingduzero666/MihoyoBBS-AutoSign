@@ -109,15 +109,6 @@ def GetAllRoles():
         sys.exit()
     return data
 
-def ProgressBar(RealTime,Sum):
-    '''
-    进度条
-    '''
-    if LoadConfig()["Bar"]:
-        print("\r", end="")
-        print("实时运行进度: {}/{} ".format(RealTime,Sum), end="")
-        sys.stdout.flush()
-
 class BH3_Checkin(object):
 
     #api
@@ -149,7 +140,7 @@ class BH3_Checkin(object):
     def run(self,list):
         region = list["region"]
         uid = list["game_uid"]
-        sign_data = self.bh3_sign(region,uid)
+        sign_data = self.bh3_sign(region,uid) #签到并返回数据
 
         if 'OK' in sign_data['message']:
             log.info('崩坏3: 签到成功')
@@ -189,7 +180,7 @@ class YS_Checkin(object):
     def run(self,list):
         region = list["region"]
         uid = list["game_uid"]
-        sign_data = self.ys_sign(region,uid)
+        sign_data = self.ys_sign(region,uid) #签到并返回数据
 
         if 'OK' in sign_data['message']:
             log.info('原神: 签到成功')
@@ -319,111 +310,182 @@ class MiYouBi(object):
                 if i.split("=")[0] == " login_ticket":
                     self.LoginTicket = i.split("=")[1]
                     break
-            response = requests.get(url=self.Cookie_url.format(self.LoginTicket))
+            response = requests.get(url=self.Cookie_url.format(self.LoginTicket)) #获取stuid
             data = json.loads(response.text.encode('utf-8'))
             if "成功" in data["data"]["msg"]:
                 self.stuid = data["data"]["cookie_info"]["account_id"]
-                response = requests.get(url=self.Cookie_url2.format(self.LoginTicket, self.stuid))
+                response = requests.get(url=self.Cookie_url2.format(self.LoginTicket, self.stuid)) #获取stoken
                 data = json.loads(response.text.encode('utf-8'))
                 self.stoken = data["data"]["list"][0]["token"]
                 self.Write()
             else:
                 log.warning(data)
-                log.warning("Cookie已失效,请重新抓取Cookie")
+                log.warning('Cookie已失效,请重新抓取Cookie')
                 self.Cleared()
                 sys.exit()
         else:
-            log.warning("Cookie中没有'login_ticket'数据,请重新抓取Cookie!")
+            log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
             self.Cleared()
             sys.exit()
 
     def SignIn(self):
-        log.info("开始为米游社签到......")
-        total = 0
         for i in self.BBS_List:
             if i["name"] in self.BBS_WhiteList:
                 response = requests.post(url=self.Sign_url.format(i["id"]), headers=self.header())
                 data = json.loads(response.text.encode('utf-8'))
                 if "登录失效，请重新登录" not in data["message"]:
-                    total = total + 1
                     log.info(i["name"] + ": " + data["message"])
                     time.sleep(SleepTime())
                 else:
-                    log.warning("签到失败,你的Cookie可能已过期,请重新抓取Cookie")
+                    log.warning(data)
+                    log.warning('签到失败,你的Cookie可能已过期,请重新抓取Cookie')
                     self.Cleared()
                     sys.exit()
-        return total
 
-    def GetList(self):
+    def Only_MYB(self):
         List = []
-        for i in self.BBS_List:
-            if i["name"] in self.BBS_WhiteList:
-                log.info("正在获取「{}」的帖子列表......".format(i["name"]))
-                response = requests.get(url=self.List_url.format(i["forumId"]), headers=self.header())
-                data = json.loads(response.text.encode('utf-8'))
-                for n in range(12):
-                    List.append([data["data"]["list"][n]["post"]["post_id"], data["data"]["list"][n]["post"]["subject"]])
-                time.sleep(SleepTime())
-        return List
-
-    def ReadArticle(self,articleList):
-        log.info("正在看帖......")
-        #虽然每日米游币任务只需要看帖3篇，但为了防止程序运行过程中有人删帖，故看帖5篇以确保完成任务
-        for i in range(5):
-            ProgressBar(RealTime=i + 1, Sum=5)
-            response = requests.get(url=self.Detail_url.format(articleList[i][0]), headers=self.header())
-            data = json.loads(response.text.encode('utf-8'))
-            if data["message"] != "OK":
-                log.warning(data)
-                log.warning("看帖失败")
-            time.sleep(SleepTime())
-
-    def UpVote(self,articleList,total):
-        log.info("正在点赞......")
-        log.info("为了完成所有已设定频道的任务,需要点赞{}篇帖子,请务必耐心等待".format(total * 12))
-        #虽然每个频道的任务只需要点赞10篇帖子，但为了防止程序运行过程中有人删帖，故每频道点赞12篇以确保完成任务
-        for i in range(total * 12):
-            ProgressBar(RealTime=i + 1, Sum=total * 12)
-            response = requests.post(url=self.Vote_url, headers=self.header(),
-                                json={"post_id": articleList[i][0], "is_cancel": False})
-            data = json.loads(response.text.encode('utf-8'))
-            if data["message"] != "OK":
-                log.warning(data)            
-                log.warning("点赞失败")
-            time.sleep(SleepTime())
-
-    def Share(self,articleList):
-        log.info("正在分享......")
-        response = requests.get(url=self.Share_url.format(articleList[0][0]), headers=self.header())
+        #获取帖子列表
+        response = requests.get(url=self.List_url.format('34'), headers=self.header()) #获取的原神频道帖子
         data = json.loads(response.text.encode('utf-8'))
-        if data["message"] != "OK":
-            log.warning(data)
-            log.warning("分享失败")
-    
+        #将获取到的帖子的id写入List
+        PostSum = len(data["data"]["list"])
+        for n in range(PostSum):
+            List.append(data["data"]["list"][n]["post"]["post_id"])
+
+        #看帖3篇
+        Success = 0
+        Count = 0
+        while Success < 3 and Count < PostSum:
+            response = requests.get(url=self.Detail_url.format(List[Count]), headers=self.header())
+            data = json.loads(response.text.encode('utf-8'))
+            if "OK" in data["message"]:
+                Success += 1
+                Count += 1
+            elif "帖子不存在" in data["message"]:
+                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                Count += 1
+            else:
+                log.warning(data)            
+                log.warning("浏览帖子出现问题,请及时检查")
+                sys.exit()
+            time.sleep(SleepTime())
+        else:
+            if Success < 3:
+                log.warning('尝试了{}篇帖子,浏览成功{}篇,未能完成任务'.format(Count,Success))
+                sys.exit()
+
+        #点赞5篇
+        Success = 0
+        Count = 0
+        while Success < 5 and Count < PostSum:
+            response = requests.post(url=self.Vote_url, headers=self.header(),json={"post_id": List[Count], "is_cancel": False})
+            data = json.loads(response.text.encode('utf-8'))
+            if "OK" in data["message"]:
+                Success += 1
+                Count += 1
+            elif "帖子不存在" in data["message"]:
+                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                Count += 1
+            else:
+                log.warning(data)            
+                log.warning("点赞出现问题,请及时检查")
+                sys.exit()
+            time.sleep(SleepTime())
+        else:
+            if Success < 5:
+                log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
+                sys.exit()
+
+        #分享1篇
+        Success = 0
+        Count = 0
+        while Success < 1 and Count < PostSum:
+            response = requests.get(url=self.Share_url.format(List[Count]), headers=self.header())
+            data = json.loads(response.text.encode('utf-8'))
+            if "OK" in data["message"]:
+                Success += 1
+                Count += 1
+            elif "帖子不存在" in data["message"]:
+                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                Count += 1
+            else:
+                log.warning(data)            
+                log.warning("点赞出现问题,请及时检查")
+                sys.exit()
+            time.sleep(SleepTime())
+        else:
+            if Success < 1:
+                log.warning('尝试分享了{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count,Success))
+                sys.exit()
+
+    def Channel(self,channel):
+        List = []
+        log.info("正在执行「{}」频道升级任务......".format(channel["name"]))
+        #获取该频道帖子列表
+        response = requests.get(url=self.List_url.format(channel["forumId"]), headers=self.header())
+        data = json.loads(response.text.encode('utf-8'))
+        #将获取到的帖子的id写入List
+        PostSum = len(data["data"]["list"])
+        for n in range(PostSum):
+            List.append(data["data"]["list"][n]["post"]["post_id"])
+
+        #点赞10篇
+        Success = 0
+        Count = 0
+        while Success < 10 and Count < PostSum:
+            response = requests.post(url=self.Vote_url, headers=self.header(),json={"post_id": List[Count], "is_cancel": False})
+            data = json.loads(response.text.encode('utf-8'))
+            if "OK" in data["message"]:
+                Success += 1
+                Count += 1
+            elif "帖子不存在" in data["message"]:
+                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                Count += 1
+            else:
+                log.warning(data)            
+                log.warning("点赞出现问题,请及时检查")
+                sys.exit()
+            time.sleep(SleepTime())
+        else:
+            if Success < 10:
+                log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
+                sys.exit()
+
+
+
     def run(self):
-        total = self.SignIn()
-        articleList = self.GetList()
-        self.ReadArticle(articleList)
-        self.UpVote(articleList,total)
-        self.Share(articleList)
+        log.info("开始执行讨论区签到......")
+        self.SignIn()
+
+        if Enable["BBS"]:
+            log.info('开始执行米游币任务......')
+            self.Only_MYB()
+
+        if Enable["Channel"]:
+            log.info('开始执行各频道升级任务......')
+            for channel in self.BBS_List:
+                if channel["name"] in self.BBS_WhiteList:
+                    self.Channel(channel)
+
 
 if __name__ == '__main__':
     delay = LoadConfig()["Delay"]
     Game_BlackList = LoadConfig()["Game_BlackList"]
-    BH3_Enable = LoadConfig()["Enable"]["BH3"]
-    YS_Enable = LoadConfig()["Enable"]["YS"]
+    Enable = LoadConfig()["Enable"]
 
-    log.info('开始签到......')
+    log.info('欢迎使用  MihoyoBBS-AutoSign v1.1')
     if delay:
         log.info('已启用随机延迟,请耐心等待')
 
+#游戏每日签到
     for list in GetAllRoles()["data"]["list"]:
-        if list["game_biz"] == "bh3_cn" and list["game_uid"] not in Game_BlackList["BH3"] and BH3_Enable:
+        if list["game_biz"] == "bh3_cn" and list["game_uid"] not in Game_BlackList["BH3"] and Enable["BH3"]:
             BH3_Checkin().run(list)
-        elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and YS_Enable:
+        elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:
             YS_Checkin().run(list)
 
-    if LoadConfig()["Enable"]["BBS"]:
+#米游社签到
+    if Enable["BBS"] or Enable["Channel"]:
         MiYouBi().run()
     
     log.info('任务全部完成')

@@ -33,9 +33,9 @@ def Write(LoginTicket,stuid,stoken):
 
 def Cleared():
     params = LoadCookie()
-    params["login_ticket"] = "None"
-    params["stuid"] = "None"
-    params["stoken"] = "None"
+    params["login_ticket"] = ""
+    params["stuid"] = ""
+    params["stoken"] = ""
     PATH = os.path.dirname(os.path.realpath(__file__))
     with open(f"{PATH}/cookie.json", "w",encoding="utf-8") as r:
         json.dump(params,r)
