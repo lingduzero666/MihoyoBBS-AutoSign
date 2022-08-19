@@ -23,8 +23,9 @@ def LoadConfig():
 #重要参数
 Game_Cookie = LoadConfig()["Game_Cookie"]
 BBS_Cookie = LoadConfig()["BBS_Cookie"]
-mysSalt = 'dWCcD2FsOUXEstC5f9xubswZxEeoBOTc' #米游社2.28.1版本安卓端salt值
-mysVersion = "2.28.1" #米游社版本
+loginSalt = 'ZSHlXeQUBis52qD1kEgKt5lUYed4b7Bb' #米游社游戏签到salt
+bbsSalt = 't0qEgfub6cvueAPgR5m9aQWWVciEer7v' #米游社讨论区salt
+mysVersion = "2.35.2" #米游社版本
 mysClient_type = '2' # 1:ios 2:Android
 
 #日志输出配置
@@ -59,10 +60,11 @@ def SleepTime():
     随机延迟时间
     '''
     if delay :
-        time = random.randint(3,8)
+        ST = random.randint(3,8)
     else:
-        time = 0
-    return time
+        ST = 0
+    time.sleep(ST)
+    
 
 def md5(text):
     '''
@@ -78,14 +80,25 @@ def randomStr(n):
     '''
     return (''.join(random.sample(string.digits + string.ascii_letters, n))).lower()
 
-def DSGet():
+def DSGet_login():
     '''
-    生成DS
+    生成游戏签到DS
     '''
-    n = mysSalt
+    n = loginSalt
     i = str(int(time.time()))
     r = randomStr(6)
     c = md5("salt=" + n + "&t=" + i + "&r=" + r)
+    return "{},{},{}".format(i, r, c)
+
+def DSGet_BBS(gid):
+    '''
+    生成讨论区DS
+    '''
+    n = bbsSalt
+    i = str(int(time.time()))
+    r = str(random.randint(100001, 200000))
+    b = json.dumps({"gids": gid})
+    c = md5("salt=" + n + "&t=" + i + "&r=" + r + "&b=" + b + "&q=") #q值为空
     return "{},{},{}".format(i, r, c)
 
 def GetAllRoles():
@@ -120,7 +133,7 @@ class BH3_Checkin(object):
     Game_biz        = 'bh3_cn'
 
     def header(self):
-        GameHeader["DS"] = DSGet()
+        GameHeader["DS"] = DSGet_login()
         GameHeader["Referer"] = self.Referer_url.format(self.Act_id)
         return GameHeader
 
@@ -134,7 +147,7 @@ class BH3_Checkin(object):
         log.info('崩坏3: 正在为舰长「{}」签到'.format(uid))
         response = requests.post(self.Sign_url,headers=self.header(),data=json.dumps(sign_data, ensure_ascii=False))
         data = json.loads(response.text.encode('utf-8'))
-        time.sleep(SleepTime())
+        SleepTime()
         return data
 
     def run(self,list):
@@ -161,7 +174,7 @@ class YS_Checkin(object):
     Game_biz        = 'hk4e_cn'
 
     def header(self):
-        GameHeader["DS"] = DSGet()
+        GameHeader["DS"] = DSGet_login()
         GameHeader["Referer"] = self.Referer_url.format(self.Act_id)
         return GameHeader
 
@@ -174,7 +187,7 @@ class YS_Checkin(object):
         log.info('原神: 正在为旅行者「{}」签到'.format(uid))
         response = requests.post(self.Sign_url,headers=self.header(),data=json.dumps(sign_data, ensure_ascii=False))
         data = json.loads(response.text.encode('utf-8'))
-        time.sleep(SleepTime())
+        SleepTime()
         return data
 
     def run(self,list):
@@ -194,7 +207,7 @@ class MiYouBi(object):
     #api
     Cookie_url = "https://webapi.account.mihoyo.com/Api/cookie_accountinfo_by_loginticket?login_ticket={}"
     Cookie_url2 = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={}&token_types=3&uid={}"
-    Sign_url = "https://bbs-api.mihoyo.com/apihub/sapi/signIn?gids={}"  # POST
+    Sign_url = "https://bbs-api.mihoyo.com/apihub/app/api/signIn"  # POST json
     List_url = "https://bbs-api.mihoyo.com/post/api/getForumPostList?forum_id={}&is_good=false&is_hot=false&page_size=20&sort_type=1"
     Detail_url = "https://bbs-api.mihoyo.com/post/api/getPostFull?post_id={}"
     Share_url = "https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_id={}&entity_type=1"
@@ -251,29 +264,28 @@ class MiYouBi(object):
         self.LoginTicket = self.LoadCookie()["login_ticket"]
         self.stuid = self.LoadCookie()["stuid"]
         self.stoken = self.LoadCookie()["stoken"]
-        self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
             log.info("更新Cookie数据中......")
             self.MYS_Cookie()
 
-    def header(self):
-        header = {
+        self.headers = {
             "Cookie": f'login_ticket={self.LoginTicket};stuid={self.stuid};stoken={self.stoken}',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 12; vivo-s7 Build/RKQ1.211119.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Version/4.0 Chrome/103.0.5060.71 Mobile Safari/537.36 miHoYoBBS/2.28.1',
-            "DS": DSGet(),
+            'User-Agent': "okhttp/4.8.0",
+            "DS": "",
             "x-rpc-client_type": mysClient_type,
             "x-rpc-app_version": mysVersion,
             "x-rpc-device_id": str(uuid.uuid3(uuid.NAMESPACE_URL, BBS_Cookie)),
-            "x-rpc-device_name": 'WHO CARE',
+            "x-rpc-device_name": "vivo s7",
             "x-rpc-device_model": "vivo-s7",
             "x-rpc-sys_version": "12",
-            "x-rpc-channel": "vivo",
+            "x-rpc-channel": "miyousheluodi",
+            "Accept-Encoding": "gzip",
             "Referer": "https://app.mihoyo.com",
-            "Host": "bbs-api.mihoyo.com",
+            "Host": "bbs-api.mihoyo.com"
         }
-        return header
+
+        self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
 
     def LoadCookie(self):
         PATH = os.path.dirname(os.path.realpath(__file__))
@@ -330,18 +342,25 @@ class MiYouBi(object):
             sys.exit()
 
     def UserBusinesses(self):
-        response = requests.get(url=self.UserBusinesses_url.format(self.stuid), headers=self.header())
+        self.headers["DS"] = DSGet_login()
+        response = requests.get(url=self.UserBusinesses_url.format(self.stuid), headers=self.headers)
         data = json.loads(response.text.encode('utf-8'))
-        return data
+        if "OK" in data["message"]:
+            return data
+        else:
+            log.warning(data)
+            log.warning('获取账号"我的频道"信息失败,退出签到')
+            sys.exit()
 
     def SignIn(self):
         for i in self.BBS_List:
             if i["id"] in self.BBS_WhiteList:
-                response = requests.post(url=self.Sign_url.format(i["id"]), headers=self.header())
+                self.headers["DS"] = DSGet_BBS(gid=i["id"])
+                response = requests.post(url=self.Sign_url, headers=self.headers, json={"gids": i["id"]})
                 data = json.loads(response.text.encode('utf-8'))
                 if "登录失效，请重新登录" not in data["message"]:
                     log.info(i["name"] + ": " + data["message"])
-                    time.sleep(SleepTime())
+                    SleepTime()
                 else:
                     log.warning(data)
                     log.warning('签到失败,你的Cookie可能已过期,请重新抓取Cookie')
@@ -351,7 +370,8 @@ class MiYouBi(object):
     def Only_MYB(self):
         List = []
         #获取帖子列表
-        response = requests.get(url=self.List_url.format('34'), headers=self.header()) #获取的原神频道帖子
+        self.headers["DS"] = DSGet_login()
+        response = requests.get(url=self.List_url.format('34'), headers=self.headers) #获取的原神频道帖子
         data = json.loads(response.text.encode('utf-8'))
         #将获取到的帖子的id写入List
         PostSum = len(data["data"]["list"])
@@ -375,18 +395,15 @@ class MiYouBi(object):
                 log.warning(data)            
                 log.warning("浏览帖子出现问题,请及时检查")
                 sys.exit()
-            time.sleep(SleepTime())
-        else:
-            if Success < 3:
-                log.warning('尝试了{}篇帖子,浏览成功{}篇,未能完成任务'.format(Count,Success))
-                sys.exit()
+            SleepTime()
 
         #点赞5篇
         Success = 0
         Count = 0
         log.info('点赞5篇帖子中......')
         while Success < 5 and Count < PostSum:
-            response = requests.post(url=self.Vote_url, headers=self.header(),json={"post_id": List[Count], "is_cancel": False})
+            self.headers["DS"] = DSGet_login()
+            response = requests.post(url=self.Vote_url, headers=self.headers,json={"post_id": List[Count], "is_cancel": False})
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
                 Success += 1
@@ -398,7 +415,7 @@ class MiYouBi(object):
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
-            time.sleep(SleepTime())
+            SleepTime()
         else:
             if Success < 5:
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
@@ -409,7 +426,8 @@ class MiYouBi(object):
         Count = 0
         log.info('分享1篇帖子中......')
         while Success < 1 and Count < PostSum:
-            response = requests.get(url=self.Share_url.format(List[Count]), headers=self.header())
+            self.headers["DS"] = DSGet_login()
+            response = requests.get(url=self.Share_url.format(List[Count]), headers=self.headers)
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
                 Success += 1
@@ -421,7 +439,7 @@ class MiYouBi(object):
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
-            time.sleep(SleepTime())
+            SleepTime()
         else:
             if Success < 1:
                 log.warning('尝试分享了{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count,Success))
@@ -431,7 +449,8 @@ class MiYouBi(object):
         List = []
         log.info("正在执行「{}」频道升级任务......".format(channel["name"]))
         #获取该频道帖子列表
-        response = requests.get(url=self.List_url.format(channel["forumId"]), headers=self.header())
+        self.headers["DS"] = DSGet_login()
+        response = requests.get(url=self.List_url.format(channel["forumId"]), headers=self.headers)
         data = json.loads(response.text.encode('utf-8'))
         #将获取到的帖子的id写入List
         PostSum = len(data["data"]["list"])
@@ -442,7 +461,8 @@ class MiYouBi(object):
         Success = 0
         Count = 0
         while Success < 10 and Count < PostSum:
-            response = requests.post(url=self.Vote_url, headers=self.header(),json={"post_id": List[Count], "is_cancel": False})
+            self.headers["DS"] = DSGet_login()
+            response = requests.post(url=self.Vote_url, headers=self.headers,json={"post_id": List[Count], "is_cancel": False})
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
                 Success += 1
@@ -454,7 +474,7 @@ class MiYouBi(object):
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
-            time.sleep(SleepTime())
+            SleepTime()
         else:
             if Success < 10:
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
@@ -485,11 +505,14 @@ if __name__ == '__main__':
         log.info('已启用随机延迟,请耐心等待')
 
 #游戏每日签到
-    for list in GetAllRoles()["data"]["list"]:
-        if list["game_biz"] == "bh3_cn" and list["game_uid"] not in Game_BlackList["BH3"] and Enable["BH3"]:
-            BH3_Checkin().run(list)
-        elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:
-            YS_Checkin().run(list)
+    if Game_Cookie == "":
+        log.info('没有设置"Game_Cookie",跳过游戏签到')
+    else:
+        for list in GetAllRoles()["data"]["list"]:
+            if list["game_biz"] == "bh3_cn" and list["game_uid"] not in Game_BlackList["BH3"] and Enable["BH3"]:
+                BH3_Checkin().run(list)
+            elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:
+                YS_Checkin().run(list)
 
 #米游社签到
     if Enable["BBS"] or Enable["Channel"]:
