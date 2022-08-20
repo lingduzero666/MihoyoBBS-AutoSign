@@ -60,12 +60,8 @@ def SleepTime():
     随机延迟时间
     '''
     if delay :
-        ST = random.randint(3,8)
-    else:
-        ST = 0
-    time.sleep(ST)
-    
-
+        time.sleep(random.randint(3,10))
+      
 def md5(text):
     '''
     md5加密
@@ -132,11 +128,6 @@ class BH3_Checkin(object):
     Act_id          = 'e202207181446311'
     Game_biz        = 'bh3_cn'
 
-    def header(self):
-        GameHeader["DS"] = DSGet_login()
-        GameHeader["Referer"] = self.Referer_url.format(self.Act_id)
-        return GameHeader
-
     def bh3_sign(self,region,uid):
         sign_data = {
             "act_id" : self.Act_id,
@@ -145,7 +136,9 @@ class BH3_Checkin(object):
             "lang" : "zh-cn"
         }
         log.info('崩坏3: 正在为舰长「{}」签到'.format(uid))
-        response = requests.post(self.Sign_url,headers=self.header(),data=json.dumps(sign_data, ensure_ascii=False))
+        GameHeader["DS"] = DSGet_login()
+        GameHeader["Referer"] = self.Referer_url.format(self.Act_id)
+        response = requests.post(self.Sign_url,headers=GameHeader,data=json.dumps(sign_data, ensure_ascii=False))
         data = json.loads(response.text.encode('utf-8'))
         SleepTime()
         return data
@@ -173,11 +166,6 @@ class YS_Checkin(object):
     Act_id          = 'e202009291139501'
     Game_biz        = 'hk4e_cn'
 
-    def header(self):
-        GameHeader["DS"] = DSGet_login()
-        GameHeader["Referer"] = self.Referer_url.format(self.Act_id)
-        return GameHeader
-
     def ys_sign(self,region,uid):
         sign_data = {
             "act_id" : self.Act_id,
@@ -185,7 +173,9 @@ class YS_Checkin(object):
             "uid" : uid
         }
         log.info('原神: 正在为旅行者「{}」签到'.format(uid))
-        response = requests.post(self.Sign_url,headers=self.header(),data=json.dumps(sign_data, ensure_ascii=False))
+        GameHeader["DS"] = DSGet_login()
+        GameHeader["Referer"] = self.Referer_url.format(self.Act_id)
+        response = requests.post(self.Sign_url,headers=GameHeader,data=json.dumps(sign_data, ensure_ascii=False))
         data = json.loads(response.text.encode('utf-8'))
         SleepTime()
         return data
@@ -213,6 +203,7 @@ class MiYouBi(object):
     Share_url = "https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_id={}&entity_type=1"
     Vote_url = "https://bbs-api.mihoyo.com/apihub/sapi/upvotePost"  # POST json 
     UserBusinesses_url = "https://bbs-api.mihoyo.com/user/api/getUserBusinesses?uid={}" #获取"我的频道"信息
+    Missions_url = "https://bbs-api.mihoyo.com/apihub/api/getUserMissionsState?" #获取任务完成情况
 
     #米游社分区
     BBS_List = [
@@ -264,6 +255,7 @@ class MiYouBi(object):
         self.LoginTicket = self.LoadCookie()["login_ticket"]
         self.stuid = self.LoadCookie()["stuid"]
         self.stoken = self.LoadCookie()["stoken"]
+        self.Nojump = True #不跳过检查的布尔值
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
             log.info("更新Cookie数据中......")
@@ -346,6 +338,7 @@ class MiYouBi(object):
         response = requests.get(url=self.UserBusinesses_url.format(self.stuid), headers=self.headers)
         data = json.loads(response.text.encode('utf-8'))
         if "OK" in data["message"]:
+            SleepTime()
             return data
         else:
             log.warning(data)
@@ -371,7 +364,7 @@ class MiYouBi(object):
         List = []
         #获取帖子列表
         self.headers["DS"] = DSGet_login()
-        response = requests.get(url=self.List_url.format('34'), headers=self.headers) #获取的原神频道帖子
+        response = requests.get(url=self.List_url.format('26'), headers=self.headers) #获取的原神频道帖子
         data = json.loads(response.text.encode('utf-8'))
         #将获取到的帖子的id写入List
         PostSum = len(data["data"]["list"])
@@ -383,19 +376,41 @@ class MiYouBi(object):
         Count = 0
         log.info('浏览3篇帖子中......')
         while Success < 3 and Count < PostSum:
+            self.headers["DS"] = DSGet_login()
             response = requests.get(url=self.Detail_url.format(List[Count]), headers=self.headers)
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
-                Success += 1
                 Count += 1
             elif "帖子不存在" in data["message"]:
-                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                log.warning('帖子(ID:{})可能已被作者或管理员删除'.format(List[Count]))
                 Count += 1
             else:
                 log.warning(data)            
                 log.warning("浏览帖子出现问题,请及时检查")
                 sys.exit()
+            #检查任务是否完成
+            if Count >= 3 and self.Nojump:
+                GameHeader["DS"] = DSGet_login()
+                GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
+                response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
+                data = json.loads(response.text.encode('utf-8'))
+                try:
+                    for i in data["data"]["states"]:
+                        if i["mission_key"] == "view_post_0": #米游币每日任务-浏览3个帖子
+                            Success = i["happened_times"]
+                            break
+                except:
+                    log.warning("检查任务是否完成失败,跳过检查")
+                    log.warning(data)
+                    self.Nojump = False
+            else:
+                Success = Count
             SleepTime()
+        else:
+            if self.Nojump:
+                log.info("检查签到结果：浏览成功{}篇".format(Success))
+            if Success < 3:
+                log.warning('尝试了{}篇帖子,浏览成功{}篇,未能完成任务'.format(Count,Success))
 
         #点赞5篇
         Success = 0
@@ -406,20 +421,33 @@ class MiYouBi(object):
             response = requests.post(url=self.Vote_url, headers=self.headers,json={"post_id": List[Count], "is_cancel": False})
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
-                Success += 1
                 Count += 1
             elif "帖子不存在" in data["message"]:
-                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                log.warning('帖子(ID:{})可能已被作者或管理员删除'.format(List[Count]))
                 Count += 1
             else:
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
+            #检查任务是否完成
+            if Count >= 5 and self.Nojump:
+                GameHeader["DS"] = DSGet_login()
+                GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
+                response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
+                data = json.loads(response.text.encode('utf-8'))
+                #上一步"看帖3篇"try过了
+                for i in data["data"]["states"]:
+                    if i["mission_key"] == "post_up_0": #米游币每日任务-完成5次点赞
+                        Success = i["happened_times"]
+                        break
+            else:
+                Success = Count
             SleepTime()
         else:
+            if self.Nojump:
+                log.info("检查签到结果：点赞成功{}篇".format(Success))
             if Success < 5:
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
-                sys.exit()
 
         #分享1篇
         Success = 0
@@ -430,24 +458,37 @@ class MiYouBi(object):
             response = requests.get(url=self.Share_url.format(List[Count]), headers=self.headers)
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
-                Success += 1
                 Count += 1
             elif "帖子不存在" in data["message"]:
-                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                log.warning('帖子(ID:{})可能已被作者或管理员删除'.format(List[Count]))
                 Count += 1
             else:
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
+            #检查任务是否完成
+            if Count >= 1 and self.Nojump:
+                GameHeader["DS"] = DSGet_login()
+                GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
+                response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
+                data = json.loads(response.text.encode('utf-8'))
+                #上上步"看帖3篇"try过了
+                for i in data["data"]["states"]:
+                    if i["mission_key"] == "share_post_0": #米游币每日任务-分享帖子
+                        Success = i["happened_times"]
+                        break
+            else:
+                Success = Count
             SleepTime()
         else:
+            if self.Nojump:
+                log.info("检查签到结果：分享成功{}篇".format(Success))
             if Success < 1:
-                log.warning('尝试分享了{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count,Success))
-                sys.exit()
+                log.warning('尝试分享了{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count))
 
     def Channel(self,channel):
         List = []
-        log.info("正在执行「{}」频道升级任务......".format(channel["name"]))
+        log.info("正在执行「{}」频道 点赞10篇帖子 任务......".format(channel["name"]))
         #获取该频道帖子列表
         self.headers["DS"] = DSGet_login()
         response = requests.get(url=self.List_url.format(channel["forumId"]), headers=self.headers)
@@ -465,17 +506,34 @@ class MiYouBi(object):
             response = requests.post(url=self.Vote_url, headers=self.headers,json={"post_id": List[Count], "is_cancel": False})
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
-                Success += 1
                 Count += 1
             elif "帖子不存在" in data["message"]:
-                log.warning('帖子(ID:{})已被作者或管理员删除,跳过该帖子'.format(List[Count]))
+                log.warning('帖子(ID:{})可能已被作者或管理员删除'.format(List[Count]))
                 Count += 1
             else:
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
+            #检查任务是否完成
+            if Count >= 10 and self.Nojump:
+                GameHeader["DS"] = DSGet_login()
+                GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
+                response = requests.get(url=self.Missions_url + "gids={}".format(channel["id"]), headers=GameHeader) #使用的是游戏签到header!!!
+                data = json.loads(response.text.encode('utf-8'))
+                try:
+                    for i in data["data"]["states"]:
+                        if i["mission_key"] == "post_up_{}".format(channel["id"]):
+                            Success = i["happened_times"]
+                            break
+                except:
+                    log.warning("检查任务是否完成失败,跳过检查")
+                    self.Nojump = False
+            else:
+                Success = Count
             SleepTime()
         else:
+            if self.Nojump:
+                log.info("检查签到结果：点赞成功{}篇".format(Success))
             if Success < 10:
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
                 sys.exit()
@@ -500,21 +558,23 @@ if __name__ == '__main__':
     Game_BlackList = LoadConfig()["Game_BlackList"]
     Enable = LoadConfig()["Enable"]
 
-    log.info('欢迎使用 MihoyoBBS-AutoSign v1.1')
+    log.info('欢迎使用 MihoyoBBS-AutoSign v1.2')
     if delay:
         log.info('已启用随机延迟,请耐心等待')
 
-#游戏每日签到
-    if Game_Cookie == "":
-        log.info('没有设置"Game_Cookie",跳过游戏签到')
-    else:
+    #游戏每日签到
+    if Enable["BH3"] or Enable["YS"]:
         for list in GetAllRoles()["data"]["list"]:
             if list["game_biz"] == "bh3_cn" and list["game_uid"] not in Game_BlackList["BH3"] and Enable["BH3"]:
-                BH3_Checkin().run(list)
+                BH3_Checkin().run(list) #崩坏3福利补给
             elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:
-                YS_Checkin().run(list)
+                YS_Checkin().run(list) #原神每日签到
+    else:
+        if Game_Cookie == "":
+            log.info('虽然关闭了所有游戏签到，但是米游币签到结果校验需要"Game_Cookie",请务必填写')
+            sys.exit()
 
-#米游社签到
+    #米游社签到
     if Enable["BBS"] or Enable["Channel"]:
         MiYouBi().run()
     

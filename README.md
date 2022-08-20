@@ -77,9 +77,10 @@ pip3 install requests
     python3 UpDataCookie.py
     ```
 
-## 主要更新记录
-- 2022/8/17  更新：通过api获取 “我的频道” 的信息，不再需要用白名单排除不需要的频道
-- 2022/8/17  重构：米游币签到部分的代码，当出现 {'data': None, 'message': '帖子不存在', 'retcode': -1} 报错时会跳过该帖子，更加智能
+## 主要功能更新记录
+- 2022/8/21 -v1.2 ：通过api校验签到结果，自动反馈调节，解决概率性漏签的问题
+- 2022/8/17 -v1.1 ：1.重写了米游币签到部分的代码，当出现 {'data': None, 'message': '帖子不存在', 'retcode': -1} 报错时会跳过该帖子  
+                    2. 通过api获取 “我的频道” 的信息，不再需要用白名单排除不需要的频道
 
 ## LICENSE
 请遵守开源协议 [GNU General Public License v3.0](https://github.com/lingduzero666/MihoyoBBS-AutoSign/blob/main/LICENSE)
