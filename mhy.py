@@ -383,7 +383,7 @@ class MiYouBi(object):
         Count = 0
         log.info('浏览3篇帖子中......')
         while Success < 3 and Count < PostSum:
-            response = requests.get(url=self.Detail_url.format(List[Count]), headers=self.header())
+            response = requests.get(url=self.Detail_url.format(List[Count]), headers=self.headers)
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
                 Success += 1
