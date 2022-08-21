@@ -255,7 +255,7 @@ class MiYouBi(object):
         self.LoginTicket = self.LoadCookie()["login_ticket"]
         self.stuid = self.LoadCookie()["stuid"]
         self.stoken = self.LoadCookie()["stoken"]
-        self.Nojump = True #不跳过检查的布尔值
+        self.CheckMission = True #检查任务完成情况
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
             log.info("更新Cookie数据中......")
@@ -389,12 +389,12 @@ class MiYouBi(object):
                 log.warning("浏览帖子出现问题,请及时检查")
                 sys.exit()
             #检查任务是否完成
-            if Count >= 3 and self.Nojump:
+            if Count >= 3 and self.CheckMission:
                 GameHeader["DS"] = DSGet_login()
                 GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
-                response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
-                data = json.loads(response.text.encode('utf-8'))
                 try:
+                    response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
+                    data = json.loads(response.text.encode('utf-8'))
                     for i in data["data"]["states"]:
                         if i["mission_key"] == "view_post_0": #米游币每日任务-浏览3个帖子
                             Success = i["happened_times"]
@@ -402,12 +402,12 @@ class MiYouBi(object):
                 except:
                     log.warning("检查任务是否完成失败,跳过检查")
                     log.warning(data)
-                    self.Nojump = False
+                    self.CheckMission = False
             else:
                 Success = Count
             SleepTime()
         else:
-            if self.Nojump:
+            if self.CheckMission:
                 log.info("检查签到结果：浏览成功{}篇".format(Success))
             if Success < 3:
                 log.warning('尝试了{}篇帖子,浏览成功{}篇,未能完成任务'.format(Count,Success))
@@ -430,7 +430,7 @@ class MiYouBi(object):
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
             #检查任务是否完成
-            if Count >= 5 and self.Nojump:
+            if Count >= 5 and self.CheckMission:
                 GameHeader["DS"] = DSGet_login()
                 GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
                 response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
@@ -444,7 +444,7 @@ class MiYouBi(object):
                 Success = Count
             SleepTime()
         else:
-            if self.Nojump:
+            if self.CheckMission:
                 log.info("检查签到结果：点赞成功{}篇".format(Success))
             if Success < 5:
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
@@ -467,7 +467,7 @@ class MiYouBi(object):
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
             #检查任务是否完成
-            if Count >= 1 and self.Nojump:
+            if Count >= 1 and self.CheckMission:
                 GameHeader["DS"] = DSGet_login()
                 GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
                 response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader) #使用的是游戏签到header!!!
@@ -481,7 +481,7 @@ class MiYouBi(object):
                 Success = Count
             SleepTime()
         else:
-            if self.Nojump:
+            if self.CheckMission:
                 log.info("检查签到结果：分享成功{}篇".format(Success))
             if Success < 1:
                 log.warning('尝试分享了{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count))
@@ -515,24 +515,24 @@ class MiYouBi(object):
                 log.warning("点赞出现问题,请及时检查")
                 sys.exit()
             #检查任务是否完成
-            if Count >= 10 and self.Nojump:
+            if Count >= 10 and self.CheckMission:
                 GameHeader["DS"] = DSGet_login()
                 GameHeader["Referer"] = "https://webstatic.mihoyo.com/"
-                response = requests.get(url=self.Missions_url + "gids={}".format(channel["id"]), headers=GameHeader) #使用的是游戏签到header!!!
-                data = json.loads(response.text.encode('utf-8'))
                 try:
+                    response = requests.get(url=self.Missions_url + "gids={}".format(channel["id"]), headers=GameHeader) #使用的是游戏签到header!!!
+                    data = json.loads(response.text.encode('utf-8'))
                     for i in data["data"]["states"]:
                         if i["mission_key"] == "post_up_{}".format(channel["id"]):
                             Success = i["happened_times"]
                             break
                 except:
                     log.warning("检查任务是否完成失败,跳过检查")
-                    self.Nojump = False
+                    self.CheckMission = False
             else:
                 Success = Count
             SleepTime()
         else:
-            if self.Nojump:
+            if self.CheckMission:
                 log.info("检查签到结果：点赞成功{}篇".format(Success))
             if Success < 10:
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
