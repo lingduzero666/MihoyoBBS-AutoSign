@@ -9,7 +9,8 @@
         "BH3": true,
         "YS": true,
         "BBS": true,
-        "Channel": true
+        "ChannelUpVote": true,
+        "ChannelPublish": false
     },
 
     "Game_BlackList": {
