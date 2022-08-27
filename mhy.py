@@ -286,7 +286,6 @@ class MihoyoBBS(object):
         self.CheckMission = True #检查任务完成情况
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
-            log.info("更新Cookie数据中......")
             self.MYS_Cookie()
 
         self.headers = {
@@ -337,6 +336,7 @@ class MihoyoBBS(object):
             r.close()
 
     def MYS_Cookie(self):
+        log.info("更新Cookie数据中......")
         if "login_ticket" in BBS_Cookie:
             c = BBS_Cookie.split(";")
             for i in c:
@@ -369,6 +369,10 @@ class MihoyoBBS(object):
         if "OK" in data["message"]:
             SleepTime()
             return data
+        elif "登录失效，请重新登录" in data["message"]:
+            log.warning(data)
+            log.warning('Cookie已失效,请重新抓取Cookie')
+            self.Cleared()
         else:
             log.warning(data)
             log.warning('获取账号"我的频道"信息失败,退出签到')
@@ -570,10 +574,13 @@ class MihoyoBBS(object):
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
                 sys.exit()
 
+    #以下为实验性功能！！！
+    #以下为实验性功能！！！
+    #以下为实验性功能！！！
     def RandomElements(self):
         '''随机标题与内容'''
-        SubjectList = ["水贴一篇","水水水","今日份的水帖","水贴得经验","随手一水","灌水灌水","水,欸嘿","每日任务之水贴"]
-        ContentList = ["水贴不知道写啥","求点赞评论收藏","为了经验大家快来水贴呀","今日份的经验我来啦","水贴多多经验多多","愿早日升级"]
+        SubjectList = ["水帖一篇","水水水","今日份的水帖","水帖得经验","随手一水","灌水灌水","欸嘿水一帖","每日任务之水帖"]
+        ContentList = ["水帖不知道写啥","求点赞评论收藏","为了经验大家快来水帖呀","今日份的经验我来啦","水帖多多经验多多","愿早日升级"]
         Reply1List = ["我回我自己","发帖回复一条龙","为了经验必须回帖","今日份的经验get","水个回复","回复一下愿早日升级"]
         Reply2List = ["每日任务需要的回复","什么大伟出奇迹","飞鱼丸与包菜与应急食品","勤劳的孩子升级快","Ok经验到手","回复一下加快升级"]
         Subject = SubjectList[random.randint(0,len(SubjectList) - 1)]
@@ -601,15 +608,28 @@ class MihoyoBBS(object):
             "topic_ids": ["877"], #"每日一水"话题分区id
             "view_type": 1
         }
-        self.headers["DS"] = DS_BBS()
-        response = requests.post(url=self.Draft_url, headers=self.headers, json=draft_data)
-        data = json.loads(response.text.encode('utf-8'))
         try:
+            self.headers["DS"] = DS_BBS()
+            response = requests.post(url=self.Draft_url, headers=self.headers, json=draft_data)
+            data = json.loads(response.text.encode('utf-8'))
             return(data["data"]["draft_id"])
         except:
-            log.warning(data)
-            log.warning('写入草稿发生错误')
-            return("err")
+            if "系统繁忙" in data['message']:
+                log.info('系统繁忙,1分钟后再次尝试')
+                time.sleep(random.randint(55,65)) #写死休眠时间,防止触发风控
+                try:
+                    self.headers["DS"] = DS_BBS()
+                    response = requests.post(url=self.Draft_url, headers=self.headers, json=draft_data)
+                    data = json.loads(response.text.encode('utf-8'))
+                    return(data["data"]["draft_id"])
+                except:
+                    log.warning(data)
+                    log.warning('写入草稿发生错误')
+                    return("err")
+            else:
+                log.warning(data)
+                log.warning('写入草稿发生错误')
+                return("err")
 
     def ReleasePost(self,subject,content,forumId,id,DraftId):
         '''发帖'''
@@ -631,15 +651,28 @@ class MihoyoBBS(object):
             "topic_ids": ["877"], #"每日一水"话题分区id
             "view_type": 1
         }
-        self.headers["DS"] = DS_BBS()
-        response = requests.post(url=self.ReleasePost_url, headers=self.headers, json=post_data)
-        data = json.loads(response.text.encode('utf-8'))
         try:
+            self.headers["DS"] = DS_BBS()
+            response = requests.post(url=self.ReleasePost_url, headers=self.headers, json=post_data)
+            data = json.loads(response.text.encode('utf-8'))
             return(data["data"]["post_id"])
         except:
-            log.warning(data)
-            log.warning('发帖发生错误')
-            return("err")
+            if "系统繁忙" in data['message']:
+                log.info('系统繁忙,1分钟后再次尝试')
+                time.sleep(random.randint(55,65)) #写死休眠时间,防止触发风控
+                try:
+                    self.headers["DS"] = DS_BBS()
+                    response = requests.post(url=self.ReleasePost_url, headers=self.headers, json=post_data)
+                    data = json.loads(response.text.encode('utf-8'))
+                    return(data["data"]["post_id"])
+                except:
+                    log.warning(data)
+                    log.warning('发帖发生错误')
+                    return("err")
+            else:
+                log.warning(data)
+                log.warning('发帖发生错误')
+                return("err")
 
     def ReleaseReply(self,PostId,reply):
         '''发评论'''
@@ -649,15 +682,28 @@ class MihoyoBBS(object):
             "reply_id": "",
             "structured_content": "[{\"insert\":\"" + reply + "\"}]"
         }
-        self.headers["DS"] = DS_BBS()
-        response = requests.post(url=self.ReleaseReply_url, headers=self.headers, json=reply_data)
-        data = json.loads(response.text.encode('utf-8'))
         try:
+            self.headers["DS"] = DS_BBS()
+            response = requests.post(url=self.ReleaseReply_url, headers=self.headers, json=reply_data)
+            data = json.loads(response.text.encode('utf-8'))
             return data["message"]
         except:
-            log.warning(data)
-            log.warning('发评论出现问题,请及时检查')
-            return("err")
+            if "系统繁忙" in data['message']:
+                log.info('系统繁忙,1分钟后再次尝试')
+                time.sleep(random.randint(55,65)) #写死休眠时间,防止触发风控
+                try:
+                    self.headers["DS"] = DS_BBS()
+                    response = requests.post(url=self.ReleaseReply_url, headers=self.headers, json=reply_data)
+                    data = json.loads(response.text.encode('utf-8'))
+                    return data["message"]
+                except:
+                    log.warning(data)
+                    log.warning('发评论出现问题,请及时检查')
+                    return("err")
+            else:        
+                log.warning(data)
+                log.warning('发评论出现问题,请及时检查')
+                return("err")
 
     def Channel_Publish(self,channel):
         '''执行各频道发帖&发评论任务'''
@@ -669,16 +715,22 @@ class MihoyoBBS(object):
             time.sleep(random.randint(12,15)) #写死休眠时间,防止触发风控
 
             #发帖子
-            PostId = self.ReleasePost(subject,content,channel["forumId"],channel["id"],DraftId)
-            time.sleep(random.randint(20,30)) #写死休眠时间,防止触发风控
+            if DraftId == "err":
+                PostId = "err"
+            else:
+                PostId = self.ReleasePost(subject,content,channel["forumId"],channel["id"],DraftId)
+                time.sleep(random.randint(20,30)) #写死休眠时间,防止触发风控
 
             #给每篇自己的帖子回复2次
-            Reply1Data = self.ReleaseReply(PostId,reply1)
-            time.sleep(random.randint(150,180)) #写死休眠时间,防止触发风控
-            Reply2Data = self.ReleaseReply(PostId,reply2)
+            if PostId == "err":
+                Reply1Data = "无帖子"
+                Reply2Data = "无帖子"
+            else:
+                Reply1Data = self.ReleaseReply(PostId,reply1)
+                time.sleep(random.randint(150,180)) #写死休眠时间,防止触发风控
+                Reply2Data = self.ReleaseReply(PostId,reply2)
 
-            log.info('频道:{:5}, 次数:{}, DraftID:{}, PostID:{}, 评论:{},{}'.format(
-                channel["name"], i+1, DraftId, PostId, Reply1Data, Reply2Data)) #调试用
+            log.info('频道:{:　<4}, 次数:{}, DraftID:{}, PostID:{}, 评论:{},{}'.format(channel["name"], i+1, DraftId, PostId, Reply1Data, Reply2Data)) #全角空格,保证对齐,满足强迫症
             time.sleep(random.randint(300,320)) #亲测发帖间隔5分钟以上较为安全不太会触发风控
 
     def run(self):
@@ -711,7 +763,7 @@ if __name__ == '__main__':
     Game_BlackList = LoadConfig()["Game_BlackList"]
     Enable = LoadConfig()["Enable"]
 
-    log.info('欢迎使用 MihoyoBBS-AutoSign v1.3')
+    log.info('欢迎使用 MihoyoBBS-AutoSign v1.3.1')
     if delay:
         log.info('已启用随机延迟,请耐心等待')
 
@@ -725,6 +777,7 @@ if __name__ == '__main__':
     else:
         if Game_Cookie == "":
             log.info('虽然关闭了所有的游戏签到,但是米游币签到结果校验需要用到"Game_Cookie",请务必填写')
+            sys.exit()
 
     #米游社签到
     if Enable["BBS"] or Enable["ChannelUpVote"] or Enable["ChannelPublish"]:
