@@ -1,6 +1,6 @@
 # MihoyoBBS-AutoSign
 自动完成 『崩坏3福利补给』『原神签到福利』『米游币任务』『频道升级任务』  
-(先写完了自己的需求,其他功能再说.....咕咕咕)
+现已支持多账号(测试中,欢迎反馈bug)
 
 本项目"米游币签到"功能的部分内容参考了[XiaoMiku01/miyoubiAuto](https://github.com/XiaoMiku01/miyoubiAuto)进行编写  
 感谢大佬的无私分享！！  
@@ -18,13 +18,27 @@ pip3 install requests
 1. 下载源码
 
 2. 在config.json中填写米游社Cookie  
-    `“Game_Cookie”` 填入从 [https://bbs.mihoyo.com/ys/](https://bbs.mihoyo.com/ys/) 获取的Cookie  
-    `"BBS_Cookie"` 填入从 [https://user.mihoyo.com/](https://user.mihoyo.com/) 获取的Cookie
+    第一步： `“Game_Cookie”` 填入从 [https://bbs.mihoyo.com/ys/](https://bbs.mihoyo.com/ys/) 获取的Cookie  
+    第二步： `"BBS_Cookie"` 填入从 [https://user.mihoyo.com/](https://user.mihoyo.com/) 获取的Cookie  
+    (本人测试中出现过颠倒顺序获取cookie导致游戏签到api返回 “请从游戏内打开” 的情况，仅供参考)
 
 3. 运行mhy.py  
     ```shell
     python3 mhy.py
     ```
+
+## 多账号功能(测试中,欢迎反馈bug)
+### 一、配置多账号功能
+1. 在 `“MultiConfig”` 文件夹中填入配置文件(内有一个初始模板),配置文件的命名请严格遵守 **“序号-config-备注信息”** 例如: 1-config-qwq.json 或 2-config-test.json
+2. 运行mhy.py **注意后面有参数**  
+    ```shell
+    python3 mhy.py multi
+    ```
+    注：运行后会生成cookie缓存文件，名称为 **序号-cookie.json**
+### 二、更新配置文件
+- 更新配置文件前需要先删除对应配置文件的cookie缓存文件，然后再获取新的cookie并填入配置文件
+### 三、删除配置文件
+- 请一定要把配置文件和对应的cookie缓存文件一起删除掉，**并保证删除后剩余配置文件序号的连续性**
 
 ## 获取Cookie方法
 
@@ -62,26 +76,11 @@ pip3 install requests
     - `"BH3"` 内为『崩坏3』的UID
     - `"YS"` 内为『原神』的UID
 
-## 需要使用UpDataCookie.py的情况(**一般用不到**)
-
-1. 抓取Cookie后需要测试Cookie有效性时使用
-
-2. 抓取Cookie后暂时不运行脚本时使用  
-    （因为抓取到的`"BBS_Cookie"`有效期很短，其在脚本中的实际作用只是获取长期有效的stuid和stoken，所以该情况需要通过此文件手动获取stuid和stoken并写入cookie.json文件中）  
-    PS:此结论仅为我自己账号的测试情况，之后会多测试几个账号验证的
-
-3. 使用云函数时，请先在本地运行此文件以获取login_ticket、stuid和stoken，然后再上传  
-    (虽然**目前不支持云函数**，但是先写出来再说)
-
-- 运行指令
-    ```shell
-    python3 UpDataCookie.py
-    ```
-
 ## 主要功能更新记录
+- 2022/9/03 -v1.4 ：支持了多账号功能
 - 2022/8/23 -v1.3 ：**实验性功能**：支持频道升级任务中的 “发主帖” “发评论” **！！风险未知酌情使用！！**
 - 2022/8/21 -v1.2 ：通过api校验签到结果，自动反馈调节，解决概率性漏签的问题
-- 2022/8/17 -v1.1 ：1.重写了米游币签到部分的代码，当出现 {'data': None, 'message': '帖子不存在', 'retcode': -1} 报错时会跳过该帖子  
+- 2022/8/17 -v1.1 ：1.重写了米游币签到部分的代码，当出现 “帖子不存在” 报错时会跳过该帖子  
                     2. 通过api获取 “我的频道” 的信息，不再需要用白名单排除不需要的频道
 
 ## LICENSE

@@ -7,6 +7,7 @@ import hashlib
 import string
 import uuid
 import json
+import glob
 import os
 import sys
 
@@ -23,13 +24,39 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
     datefmt='%Y-%m-%dT%H:%M:%S')
 
-def LoadConfig():
+#全局变量
+PATH = os.path.dirname(os.path.realpath(__file__))
+Multi_ConfigPath = PATH + "\\MultiConfig\\{}-config-{}.json"
+Multi_CookiePath = PATH + "\\MultiConfig\\{}-cookie.json"
+
+
+def LoadConfig(path=f"{PATH}/config.json"):
     '''加载配置文件'''
-    PATH = os.path.dirname(os.path.realpath(__file__))
-    with open(f"{PATH}/config.json", "r",encoding="utf-8") as f:
+    with open(path, "r",encoding="utf-8") as f:
             data = json.load(f)
             f.close()
             return data
+
+def LoadCookie(path=f"{PATH}/cookie.json"):
+    '''加载缓存的cookie文件'''
+    with open(path, "r",encoding="utf-8") as f:
+            data = json.load(f)
+            f.close()
+            return data
+
+def Write(login_ticket,stuid,stoken,path=f"{PATH}/cookie.json"):
+    '''写入cookie缓存'''
+    params = {"login_ticket": "{}".format(login_ticket), "stuid": "{}".format(stuid), "stoken": "{}".format(stoken)}
+    with open(path, "w",encoding="utf-8") as r:
+        json.dump(params,r)
+        r.close()
+
+def Cleared(path=f"{PATH}/cookie.json"):
+    '''清空缓存cookie'''
+    params = {"login_ticket": "", "stuid": "", "stoken": ""}
+    with open(path, "w",encoding="utf-8") as r:
+        json.dump(params,r)
+        r.close()
 
 def GameHeader(Referer="https://webstatic.mihoyo.com/"): #此referer为默认值
     '''游戏签到福利的header'''
@@ -57,6 +84,8 @@ def SleepTime():
     '''随机延迟时间'''
     if delay :
         time.sleep(random.randint(5,10))
+    else:
+        time.sleep(1)
       
 def md5(text):
     '''md5加密'''
@@ -99,7 +128,60 @@ def GetAllRoles():
     SleepTime()
     return data
 
-class BH3_Checkin(object):
+def Multi_Load():
+    '''多账号加载'''
+    MultiPath = glob.glob(Multi_ConfigPath.format("*","*"))
+    MultiCookie = glob.glob(Multi_CookiePath.format("*"))
+    TotalConfig = len(MultiPath)
+    TotalCookie = len(MultiCookie)
+
+    Cookie_url  = "https://webapi.account.mihoyo.com/Api/cookie_accountinfo_by_loginticket?login_ticket={}"
+    Cookie_url2 = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={}&token_types=3&uid={}"
+
+    #获取备注信息
+    MultiRemark = []
+    for r in MultiPath:
+        MultiRemark.append(r.split("\\")[-1].split("-")[-1].split(".")[0])
+
+    log.info('共找到 {} 个配置文件, {} 个缓存的Cookie数据'.format(TotalConfig,TotalCookie))
+
+    #获取没有缓存cookie的账号序号并创建cookie缓存
+    if TotalCookie != TotalConfig:
+        ConfigOrdinal = []
+        for c1 in MultiPath:
+            ConfigOrdinal.append(c1.split("\\")[-1].split("-")[0])
+        CookieOrdinal = []
+        for c2 in MultiCookie:
+            CookieOrdinal.append(c2.split("\\")[-1].split("-")[0])
+        for D in ConfigOrdinal:
+            if D not in CookieOrdinal:
+                d = int(D)
+                log.info('正在为 [{}] 更新cookie数据......'.format(MultiRemark[d-1]))
+                CookieCache = LoadConfig(path=Multi_ConfigPath.format(d, MultiRemark[d-1]))
+                if "login_ticket" in CookieCache["BBS_Cookie"]:
+                    c = CookieCache["BBS_Cookie"].split(";")
+                    for i in c:
+                        if i.split("=")[0] == " login_ticket": #login_ticket前面的空格是必须的
+                            LoginTicket = i.split("=")[1]
+                            break
+                    response = requests.get(url=Cookie_url.format(LoginTicket)) #获取stuid
+                    data = json.loads(response.text.encode('utf-8'))
+                    if "成功" in data["data"]["msg"]:
+                        stuid = data["data"]["cookie_info"]["account_id"]
+                        response = requests.get(url=Cookie_url2.format(LoginTicket, stuid)) #获取stoken
+                        data = json.loads(response.text.encode('utf-8'))
+                        stoken = data["data"]["list"][0]["token"]
+                        Write(LoginTicket,stuid,stoken,Multi_CookiePath.format(d))
+                        log.info('更新成功')
+                    else:
+                        log.warning(data)
+                        log.warning('Cookie已失效,请重新抓取Cookie')
+                else:
+                    log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
+                SleepTime()
+    return MultiPath,MultiRemark,TotalConfig
+
+class BH3_Checkin():
 
     #api
     Referer_url     = 'https://webstatic.mihoyo.com/bbs/event/signin/bh3/index.html?bbs_auth_required=true&act_id={}&bbs_presentation_style=fullscreen&utm_source=bbs&utm_medium=mys&utm_campaign=icon'
@@ -159,7 +241,7 @@ class BH3_Checkin(object):
                     log.warning('崩坏3: 签到出现错误,请及时检查')
                 break
 
-class YS_Checkin(object):
+class YS_Checkin():
     
     #api
     Referer_url     = 'https://webstatic.mihoyo.com/bbs/event/signin-ys/index.html?bbs_auth_required=true&act_id={}&utm_source=bbs&utm_medium=mys&utm_campaign=icon'
@@ -218,7 +300,7 @@ class YS_Checkin(object):
                     log.warning('原神: 签到出现错误,请及时检查')
                 break
 
-class MihoyoBBS(object):
+class MihoyoBBS():
     #api
     Cookie_url          = "https://webapi.account.mihoyo.com/Api/cookie_accountinfo_by_loginticket?login_ticket={}"
     Cookie_url2         = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={}&token_types=3&uid={}"
@@ -281,13 +363,14 @@ class MihoyoBBS(object):
     ]
     
     def __init__(self):
-        self.LoginTicket = self.LoadCookie()["login_ticket"]
-        self.stuid = self.LoadCookie()["stuid"]
-        self.stoken = self.LoadCookie()["stoken"]
+        self.LoginTicket = BBScookie["login_ticket"]
+        self.stuid = BBScookie["stuid"]
+        self.stoken = BBScookie["stoken"]
+
         self.CheckMission = True #检查任务完成情况
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
-            self.MYS_Cookie()
+            self.CookieCache()
 
         self.headers = {
             "Cookie": f'login_ticket={self.LoginTicket};stuid={self.stuid};stoken={self.stoken}',
@@ -307,36 +390,7 @@ class MihoyoBBS(object):
 
         self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
 
-    def LoadCookie(self):
-        PATH = os.path.dirname(os.path.realpath(__file__))
-        with open(f"{PATH}/cookie.json", "r",encoding="utf-8") as f:
-                data = json.load(f)
-                f.close()
-                return data
-
-    def Write(self):
-        params = self.LoadCookie()
-        params["login_ticket"] = self.LoginTicket
-        params["stuid"] = self.stuid
-        params["stoken"] = self.stoken
-
-        PATH = os.path.dirname(os.path.realpath(__file__))
-        with open(f"{PATH}/cookie.json", "w",encoding="utf-8") as r:
-            json.dump(params,r)
-            r.close()
-
-    def Cleared(self):
-        params = self.LoadCookie()
-        params["login_ticket"] = ""
-        params["stuid"] = ""
-        params["stoken"] = ""
-
-        PATH = os.path.dirname(os.path.realpath(__file__))
-        with open(f"{PATH}/cookie.json", "w",encoding="utf-8") as r:
-            json.dump(params,r)
-            r.close()
-
-    def MYS_Cookie(self):
+    def CookieCache(self):
         log.info("更新Cookie数据中......")
         if "login_ticket" in BBS_Cookie:
             c = BBS_Cookie.split(";")
@@ -351,15 +405,15 @@ class MihoyoBBS(object):
                 response = requests.get(url=self.Cookie_url2.format(self.LoginTicket, self.stuid)) #获取stoken
                 data = json.loads(response.text.encode('utf-8'))
                 self.stoken = data["data"]["list"][0]["token"]
-                self.Write()
+                Write(self.LoginTicket,self.stuid,self.stoken)
             else:
                 log.warning(data)
                 log.warning('Cookie已失效,请重新抓取Cookie')
-                self.Cleared()
+                Cleared()
                 sys.exit()
         else:
             log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
-            self.Cleared()
+            Cleared()
             sys.exit()
 
     def UserBusinesses(self):
@@ -372,7 +426,7 @@ class MihoyoBBS(object):
             return data
         elif "登录失效，请重新登录" in data["message"]:
             log.warning('Cookie已失效,请重新抓取Cookie')
-            self.Cleared()
+            Cleared()
         else:
             log.warning(data)
             log.warning('获取账号"我的频道"信息失败,退出签到')
@@ -391,7 +445,7 @@ class MihoyoBBS(object):
                 else:
                     log.warning(data)
                     log.warning('签到失败,你的Cookie可能已过期,请重新抓取Cookie')
-                    self.Cleared()
+                    Cleared()
                     sys.exit()
 
     def Only_MYB(self):
@@ -728,8 +782,10 @@ class MihoyoBBS(object):
                 channel["name"] = "崩坏３"
             elif channel["name"] == "崩坏2":
                 channel["name"] = "崩坏２"
+            elif channel["name"] == "原神":
+                channel["name"] = "原　神"
 
-            log.info('频道:{:　^4}, 次数:{}, DraftID:{}, PostID:{}, 评论:{},{}'.format(channel["name"], i+1, DraftId, PostId, Reply1Data, Reply2Data))
+            log.info('频道:{:　<4}, 次数:{}, DraftID:{}, PostID:{}, 评论:{},{}'.format(channel["name"], i+1, DraftId, PostId, Reply1Data, Reply2Data))
             time.sleep(random.randint(300,320)) #亲测发帖间隔5分钟以上较为安全不太会触发风控
     #↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
     #以上为实验性功能
@@ -755,21 +811,7 @@ class MihoyoBBS(object):
                 if channel["id"] in self.BBS_WhiteList:
                     self.Channel_Publish(channel)
 
-
-if __name__ == '__main__':
-    #读取配置文件
-    try:
-        config = LoadConfig()
-        delay = config["Delay"]
-        Game_Cookie = config["Game_Cookie"]
-        BBS_Cookie = config["BBS_Cookie"]
-        Game_BlackList = config["Game_BlackList"]
-        Enable = config["Enable"]
-    except:
-        log.warning('有配置信息未能读取,请检查配置文件是否有错误或是否为最新版')
-        sys.exit()
-
-    log.info('欢迎使用 MihoyoBBS-AutoSign v1.3.2')
+def StartRun():
     if delay:
         log.info('已启用随机延迟,请耐心等待')
 
@@ -788,5 +830,44 @@ if __name__ == '__main__':
     #米游社签到
     if Enable["BBS"] or Enable["ChannelUpVote"] or Enable["ChannelPublish"]:
         MihoyoBBS().run()
+
+
+if __name__ == '__main__':
+    if "multi" in sys.argv: #多账号
+        log.info('欢迎使用 MihoyoBBS-AutoSign v1.4 (多账号版)')
+
+        #读取多账号配置
+        MultiPath,MultiRemark,TotalConfig = Multi_Load()
+        for n in range(TotalConfig):
+            log.info('{:=^40}'.format(f'正在执行第 {n+1} 个账号(备注信息:{MultiRemark[n]})'))
+            try:
+                config = LoadConfig(Multi_ConfigPath.format(n+1,MultiRemark[n]))
+                delay = config["Delay"]
+                Game_Cookie = config["Game_Cookie"]
+                BBS_Cookie = config["BBS_Cookie"]
+                Game_BlackList = config["Game_BlackList"]
+                Enable = config["Enable"]
+                BBScookie = LoadCookie(Multi_CookiePath.format(n+1))
+            except:
+                log.warning('有配置信息未能读取,请检查配置文件是否有错误或是否为最新版')
+                sys.exit()
+            StartRun()
+
+    else:#单账号
+        log.info('欢迎使用 MihoyoBBS-AutoSign v1.4')
+
+        #读取配置文件
+        try:
+            config = LoadConfig()
+            delay = config["Delay"]
+            Game_Cookie = config["Game_Cookie"]
+            BBS_Cookie = config["BBS_Cookie"]
+            Game_BlackList = config["Game_BlackList"]
+            Enable = config["Enable"]
+            BBScookie = LoadCookie()
+        except:
+            log.warning('有配置信息未能读取,请检查配置文件是否有错误或是否为最新版')
+            sys.exit()
+        StartRun()
 
     log.info('任务全部完成\n')

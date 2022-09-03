@@ -1,0 +1,20 @@
+{
+    "Game_Cookie": "",
+
+    "BBS_Cookie": "",
+
+    "Delay": true, 
+
+    "Enable": {
+        "BH3": true,
+        "YS": true,
+        "BBS": true,
+        "ChannelUpVote": true,
+        "ChannelPublish": false
+    },
+
+    "Game_BlackList": {
+        "BH3": [""], 
+        "YS": [""]
+    }
+}
