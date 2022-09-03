@@ -29,12 +29,14 @@ pip3 install requests
 
 ## 多账号功能(测试中,欢迎反馈bug)
 ### 一、配置多账号功能
-1. 在 `“MultiConfig”` 文件夹中填入配置文件(内有一个初始模板),配置文件的命名请严格遵守 **“序号-config-备注信息”** 例如: 1-config-qwq.json 或 2-config-test.json
+1. 在 `“MultiConfig”` 文件夹中填入配置文件(内有一个初始模板),配置文件的命名请严格遵守 **“序号-config-备注信息”** 例如: 1-config-qwq.json 或 2-config-test.json  
+![配置多账号功能图解](https://upload-bbs.mihoyo.com/upload/2022/09/04/79828707/36449c1bf9802a6873ab963f3f67db6d_3701744741000984365.png
+)
 2. 运行mhy.py **注意后面有参数**  
     ```shell
     python3 mhy.py multi
     ```
-    注：运行后会生成cookie缓存文件，名称为 **序号-cookie.json**
+    注：运行后会自动生成cookie缓存文件，名称为 **序号-cookie.json**
 ### 二、更新配置文件
 - 更新配置文件前需要先删除对应配置文件的cookie缓存文件，然后再获取新的cookie并填入配置文件
 ### 三、删除配置文件
