@@ -10,7 +10,8 @@
         "YS": true,
         "BBS": true,
         "ChannelUpVote": true,
-        "ChannelPublish": false
+        "ChannelPublish": false,
+        "DeleteOldPost": false
     },
 
     "Game_BlackList": {

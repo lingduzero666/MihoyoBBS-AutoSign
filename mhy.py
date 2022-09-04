@@ -131,8 +131,8 @@ def GetAllRoles():
 def Multi_Load():
     '''多账号加载'''
     MultiPath = []
-    for m in range(99):
-        try:
+    for m in range(len(glob.glob(Multi_ConfigPath.format("*","*")))):
+        try:#从1开始轮询，避免顺序错误
             MultiPath.append(glob.glob(Multi_ConfigPath.format(m+1,"*"))[0])
             log.info(MultiPath)
         except:
@@ -312,7 +312,7 @@ class MihoyoBBS():
     Cookie_url2         = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={}&token_types=3&uid={}"
     Sign_url            = "https://bbs-api.mihoyo.com/apihub/app/api/signIn"  # POST json
     List_url            = "https://bbs-api.mihoyo.com/post/api/getForumPostList?forum_id={}&is_good=false&is_hot=false&page_size=20&sort_type=1"
-    Detail_url          = "https://bbs-api.mihoyo.com/post/api/getPostFull?post_id={}"
+    GetPostFull_url     = "https://bbs-api.mihoyo.com/post/api/getPostFull?post_id={}"
     Share_url           = "https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_id={}&entity_type=1"
     UpVote_url          = "https://bbs-api.mihoyo.com/apihub/sapi/upvotePost"  # POST json
     UserBusinesses_url  = "https://bbs-api.mihoyo.com/user/api/getUserBusinesses?uid={}" #获取"我的频道"信息
@@ -320,6 +320,7 @@ class MihoyoBBS():
     Draft_url           = "https://bbs-api.mihoyo.com/post/api/draft/save"  # POST json 草稿
     ReleasePost_url     = "https://bbs-api.mihoyo.com/post/api/releasePost/v2" # POST json 发帖
     ReleaseReply_url    = "https://bbs-api.mihoyo.com/post/api/releaseReply"# POST json 发评论
+    SelfPostList_url    = "https://bbs-api.mihoyo.com/painter/api/user_instant/list?offset={}&size=20&uid={}" #offset初始值为0
     DeletePost_url      = "https://bbs-api.mihoyo.com/post/api/deletePost" # POST json 删帖
 
     #米游社分区
@@ -472,7 +473,7 @@ class MihoyoBBS():
         log.info('浏览3篇帖子中......')
         while Success < 3 and Count < PostSum:
             self.headers["DS"] = DS_BBS()
-            response = requests.get(url=self.Detail_url.format(List[Count]), headers=self.headers)
+            response = requests.get(url=self.GetPostFull_url.format(List[Count]), headers=self.headers)
             data = json.loads(response.text.encode('utf-8'))
             if "OK" in data["message"]:
                 Count += 1
@@ -758,10 +759,48 @@ class MihoyoBBS():
             log.warning('评论失败')
             return("err")
 
+    def DeletePost(self):
+        #获取需要删除的帖子
+        SelfPost = []
+        offset,limit = 0,0
+        last = False
+        while last == False and limit < 8:
+            limit += 1
+            self.headers["DS"] = DS_BBS()
+            response = requests.get(url=self.SelfPostList_url.format(offset,self.stuid), headers=self.headers)
+            data = json.loads(response.text.encode('utf-8'))
+            if data["retcode"] == 0:
+                offset = data["data"]["next_offset"]
+                last = data["data"]["is_last"]
+                for list in data["data"]["list"]:
+                    PostSubject = list["post"]["post"]["subject"]
+                    #双重识别,避免误删
+                    if "⨌" in PostSubject:
+                        if PostSubject.split("⨌")[-1] == "(1/2)" or PostSubject.split("⨌")[-1] == "(2/2)":
+                            SelfPost.append(list["post"]["post"]["post_id"])
+            else:
+                log.info(data)
+            SleepTime()
+        #开始删帖
+        for id in SelfPost:
+            delete_data = {
+                "operate_type": 0,
+                "post_id": id
+                }
+            self.headers["DS"] = DS_BBS()
+            response = requests.post(url=self.DeletePost_url, headers=self.headers, json=delete_data)
+            data = json.loads(response.text.encode('utf-8'))
+            if data["retcode"] == 0:
+                log.info('删除帖子(id:{}) 成功'.format(id))
+            else:
+                log.info(data)
+            SleepTime()
+
     def Channel_Publish(self,channel):
         '''执行各频道发帖&发评论任务'''
         for i in range(2): #发帖2篇
             subject,content,reply1,reply2 = self.RandomElements()
+            subject += " ⨌({}/2)".format(i+1) #⨌此特殊符号用于删帖时作特征识别
 
             #写入草稿
             DraftId = self.Draft(subject,content,channel["forumId"],channel["id"])
@@ -808,6 +847,10 @@ class MihoyoBBS():
                 if channel["id"] in self.BBS_WhiteList:
                     self.Channel_UpVote(channel)
 
+        if Enable["DeleteOldPost"]:
+            log.info('开始删除今天之前水的贴子')
+            self.DeletePost()
+
         if Enable["ChannelPublish"]:
             log.info('开始执行各频道发帖&评论任务......')
             log.info('!!!实验性功能,有bug,且会有各种不可预估的风险(如封禁),请酌情选择使用!!!')
@@ -834,7 +877,7 @@ def StartRun():
             sys.exit()
 
     #米游社签到
-    if Enable["BBS"] or Enable["ChannelUpVote"] or Enable["ChannelPublish"]:
+    if Enable["BBS"] or Enable["ChannelUpVote"] or Enable["ChannelPublish"] or Enable["DeleteOldPost"]:
         MihoyoBBS().run()
 
 
