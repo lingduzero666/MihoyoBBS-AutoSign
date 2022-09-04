@@ -25,6 +25,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%dT%H:%M:%S')
 
 #全局变量
+VERSION = "v1.4.1"
 PATH = os.path.dirname(os.path.realpath(__file__))
 Multi_ConfigPath = PATH + "/MultiConfig/{}-config-{}.json"
 Multi_CookiePath = PATH + "/MultiConfig/{}-cookie.json"
@@ -883,7 +884,7 @@ def StartRun():
 
 if __name__ == '__main__':
     if "multi" in sys.argv: #多账号
-        log.info('欢迎使用 MihoyoBBS-AutoSign v1.4 (多账号版)')
+        log.info(f'欢迎使用 MihoyoBBS-AutoSign {VERSION} (多账号版)')
 
         #读取多账号配置
         MultiPath,MultiRemark,TotalConfig = Multi_Load()
@@ -903,7 +904,7 @@ if __name__ == '__main__':
             StartRun()
 
     else:#单账号
-        log.info('欢迎使用 MihoyoBBS-AutoSign v1.4')
+        log.info(f'欢迎使用 MihoyoBBS-AutoSign {VERSION}')
 
         #读取配置文件
         try:
