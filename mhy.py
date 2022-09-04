@@ -26,8 +26,8 @@ logging.basicConfig(
 
 #全局变量
 PATH = os.path.dirname(os.path.realpath(__file__))
-Multi_ConfigPath = PATH + "\\MultiConfig\\{}-config-{}.json"
-Multi_CookiePath = PATH + "\\MultiConfig\\{}-cookie.json"
+Multi_ConfigPath = PATH + "/MultiConfig/{}-config-{}.json"
+Multi_CookiePath = PATH + "/MultiConfig/{}-cookie.json"
 
 
 def LoadConfig(path=f"{PATH}/config.json"):
@@ -130,7 +130,13 @@ def GetAllRoles():
 
 def Multi_Load():
     '''多账号加载'''
-    MultiPath = glob.glob(Multi_ConfigPath.format("*","*"))
+    MultiPath = []
+    for m in range(99):
+        try:
+            MultiPath.append(glob.glob(Multi_ConfigPath.format(m+1,"*"))[0])
+            log.info(MultiPath)
+        except:
+            break
     MultiCookie = glob.glob(Multi_CookiePath.format("*"))
     TotalConfig = len(MultiPath)
     TotalCookie = len(MultiCookie)
@@ -141,18 +147,18 @@ def Multi_Load():
     #获取备注信息
     MultiRemark = []
     for r in MultiPath:
-        MultiRemark.append(r.split("\\")[-1].split("-")[-1].split(".")[0])
+        MultiRemark.append(r.split("/")[-1].split("-")[-1].split(".")[0])
 
     log.info('共找到 {} 个配置文件, {} 个缓存的Cookie数据'.format(TotalConfig,TotalCookie))
 
     #获取没有缓存cookie的账号序号并创建cookie缓存
+    ConfigOrdinal = []
+    for c1 in MultiPath:
+        ConfigOrdinal.append(c1.split("/")[-1].split("-")[0])
+    CookieOrdinal = []
+    for c2 in MultiCookie:
+        CookieOrdinal.append(c2.split("/")[-1].split("-")[0])
     if TotalCookie != TotalConfig:
-        ConfigOrdinal = []
-        for c1 in MultiPath:
-            ConfigOrdinal.append(c1.split("\\")[-1].split("-")[0])
-        CookieOrdinal = []
-        for c2 in MultiCookie:
-            CookieOrdinal.append(c2.split("\\")[-1].split("-")[0])
         for D in ConfigOrdinal:
             if D not in CookieOrdinal:
                 d = int(D)
