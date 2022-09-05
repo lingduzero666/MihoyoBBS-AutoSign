@@ -135,7 +135,6 @@ def Multi_Load():
     for m in range(len(glob.glob(Multi_ConfigPath.format("*","*")))):
         try:#从1开始轮询，避免顺序错误
             MultiPath.append(glob.glob(Multi_ConfigPath.format(m+1,"*"))[0])
-            log.info(MultiPath)
         except:
             break
     MultiCookie = glob.glob(Multi_CookiePath.format("*"))
