@@ -808,7 +808,7 @@ class MihoyoBBS():
 
             #发帖子
             if DraftId == "err":
-                PostId = "err"
+                return("err")
             else:
                 PostId = self.ReleasePost(subject,content,channel["forumId"],channel["id"],DraftId)
                 time.sleep(random.randint(20,30)) #写死休眠时间,防止触发风控
@@ -823,14 +823,15 @@ class MihoyoBBS():
                 Reply2Data = self.ReleaseReply(PostId,reply2)
 
             #改为全角,保证对齐,强迫症直呼满足
-            if channel["name"] == "崩坏3":
-                channel["name"] = "崩坏３"
-            elif channel["name"] == "崩坏2":
-                channel["name"] = "崩坏２"
-            elif channel["name"] == "原神":
-                channel["name"] = "原　神"
+            PerfectName = channel["name"] #加入中间参数，避免修改源数据
+            if PerfectName == "崩坏3":
+                PerfectName = "崩坏３"
+            elif PerfectName == "崩坏2":
+                PerfectName = "崩坏２"
+            elif PerfectName == "原神":
+                PerfectName = "原　神"
 
-            log.info('频道:{:　<4}, 次数:{}, DraftID:{}, PostID:{}, 评论:{},{}'.format(channel["name"], i+1, DraftId, PostId, Reply1Data, Reply2Data))
+            log.info('频道:{:　<4}, 次数:{}, DraftID:{}, PostID:{}, 评论:{},{}'.format(PerfectName, i+1, DraftId, PostId, Reply1Data, Reply2Data))
             time.sleep(random.randint(300,320)) #亲测发帖间隔5分钟以上较为安全不太会触发风控
     #↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
     #以上为实验性功能
@@ -853,16 +854,22 @@ class MihoyoBBS():
 
         if Enable["ChannelPublish"]:
             log.info('开始执行各频道发帖&评论任务......')
-            log.info('!!!实验性功能,有bug,且会有各种不可预估的风险(如封禁),请酌情选择使用!!!')
             log.info('!!!作者亲测发帖间隔5分钟以上较为安全不太会触发风控,故完成本项任务需要巨长时间!!!')
-            log.info('预估完成本项任务需要 {} 分钟'.format(len(self.BBS_WhiteList) * 2 * 8)) #乘数的第一个为每频道发帖次数，第二个为间隔时间
+            log.info('预估完成本项任务需要 {} 分钟,请一定要耐心等待'.format(len(self.BBS_WhiteList) * 2 * 8)) #乘数的第一个为每频道发帖次数，第二个为间隔时间
             for channel in self.BBS_List:
                 if channel["id"] in self.BBS_WhiteList:
-                    self.Channel_Publish(channel)
+                    result = self.Channel_Publish(channel)
+                    if result == "err":
+                        log.warning('退出执行各频道发帖&评论任务')
+                        break
 
 def StartRun():
     if delay:
         log.info('已启用随机延迟,请耐心等待')
+
+    #实验性功能警告
+    if Enable["ChannelPublish"] or Enable["DeleteOldPost"]:
+        log.info('!!!您已开启实验性功能,可能存在未知bug,且会有各种不可预估的风险(如禁言,封号),请酌情选择使用!!!')
 
     #游戏每日签到
     if Enable["BH3"] or Enable["YS"]:
