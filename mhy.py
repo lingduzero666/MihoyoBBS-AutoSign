@@ -62,7 +62,7 @@ def Cleared(path=f"{PATH}/cookie.json"):
 def GameHeader(Referer="https://webstatic.mihoyo.com/"): #此referer为默认值
     '''游戏签到福利的header'''
     headers = {
-        'Cookie': Game_Cookie,
+        'Cookie': Cookie,
         'User-Agent': 'Mozilla/5.0 (Linux; Android 12; vivo-s7 Build/RKQ1.211119.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
                     'Version/4.0 Chrome/103.0.5060.71 Mobile Safari/537.36 miHoYoBBS/2.35.2',
         'Referer': Referer,
@@ -71,7 +71,7 @@ def GameHeader(Referer="https://webstatic.mihoyo.com/"): #此referer为默认值
         'Accept-Encoding': 'gzip, deflate',
         'Origin': 'https://webstatic.mihoyo.com',
         'X-Requested-With': 'com.mihoyo.hyperion',
-        'x-rpc-device_id': str(uuid.uuid3(uuid.NAMESPACE_URL, Game_Cookie)),
+        'x-rpc-device_id': str(uuid.uuid3(uuid.NAMESPACE_URL, Cookie)),
         'x-rpc-device_name': 'vivo s7',
         'x-rpc-device_model': 'vivo-s7',
         'x-rpc-sys_version': '12',
@@ -164,8 +164,8 @@ def Multi_Load():
                 d = int(D)
                 log.info('正在为 [{}] 更新cookie数据......'.format(MultiRemark[d-1]))
                 CookieCache = LoadConfig(path=Multi_ConfigPath.format(d, MultiRemark[d-1]))
-                if "login_ticket" in CookieCache["BBS_Cookie"]:
-                    c = CookieCache["BBS_Cookie"].split(";")
+                if "login_ticket" in CookieCache["Cookie"]:
+                    c = CookieCache["Cookie"].split(";")
                     for i in c:
                         if i.split("=")[0] == " login_ticket": #login_ticket前面的空格是必须的
                             LoginTicket = i.split("=")[1]
@@ -184,7 +184,7 @@ def Multi_Load():
                         log.warning('Cookie已失效,请重新抓取Cookie')
                 else:
                     log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
-                SleepTime()
+                time.sleep(random.randint(2,5)) #写死休眠时间,防止触发风控
     return MultiPath,MultiRemark,TotalConfig
 
 class BH3_Checkin():
@@ -370,14 +370,14 @@ class MihoyoBBS():
     ]
     
     def __init__(self):
-        self.LoginTicket = BBScookie["login_ticket"]
-        self.stuid = BBScookie["stuid"]
-        self.stoken = BBScookie["stoken"]
+        self.LoginTicket = CookieCache["login_ticket"]
+        self.stuid = CookieCache["stuid"]
+        self.stoken = CookieCache["stoken"]
 
         self.CheckMission = True #检查任务完成情况
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
-            self.CookieCache()
+            self.CreateCookieCache()
 
         self.headers = {
             "Cookie": f'login_ticket={self.LoginTicket};stuid={self.stuid};stoken={self.stoken}',
@@ -385,7 +385,7 @@ class MihoyoBBS():
             "DS": "", #随用随更新，保证实时性
             "x-rpc-client_type": mysClient_type,
             "x-rpc-app_version": mysVersion,
-            "x-rpc-device_id": str(uuid.uuid3(uuid.NAMESPACE_URL, BBS_Cookie)),
+            "x-rpc-device_id": str(uuid.uuid3(uuid.NAMESPACE_URL, Cookie)),
             "x-rpc-device_name": "vivo s7",
             "x-rpc-device_model": "vivo-s7",
             "x-rpc-sys_version": "12",
@@ -397,10 +397,10 @@ class MihoyoBBS():
 
         self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
 
-    def CookieCache(self):
+    def CreateCookieCache(self):
         log.info("更新Cookie数据中......")
-        if "login_ticket" in BBS_Cookie:
-            c = BBS_Cookie.split(";")
+        if "login_ticket" in Cookie:
+            c = Cookie.split(";")
             for i in c:
                 if i.split("=")[0] == " login_ticket": #login_ticket前面的空格是必须的
                     self.LoginTicket = i.split("=")[1]
@@ -764,7 +764,7 @@ class MihoyoBBS():
         SelfPost = []
         offset,limit = 0,0
         last = False
-        while last == False and limit < 8:
+        while last == False and limit < 5:
             limit += 1
             self.headers["DS"] = DS_BBS()
             response = requests.get(url=self.SelfPostList_url.format(offset,self.stuid), headers=self.headers)
@@ -879,8 +879,8 @@ def StartRun():
             elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:
                 YS_Checkin().run(list) #原神每日签到
     else:
-        if Game_Cookie == "":
-            log.info('虽然关闭了所有的游戏签到,但是米游币签到结果校验需要用到"Game_Cookie",请务必填写')
+        if Cookie == "":
+            log.info('虽然关闭了所有的游戏签到,但是米游币签到结果校验需要用到"Cookie",请务必填写')
             sys.exit()
 
     #米游社签到
@@ -895,15 +895,14 @@ if __name__ == '__main__':
         #读取多账号配置
         MultiPath,MultiRemark,TotalConfig = Multi_Load()
         for n in range(TotalConfig):
-            log.info('{:=^40}'.format(f'正在执行第 {n+1} 个账号(备注信息:{MultiRemark[n]})'))
+            log.info('{:=^46}'.format(f'正在执行第 {n+1} 个账号(备注信息:{MultiRemark[n]})'))
             try:
                 config = LoadConfig(Multi_ConfigPath.format(n+1,MultiRemark[n]))
                 delay = config["Delay"]
-                Game_Cookie = config["Game_Cookie"]
-                BBS_Cookie = config["BBS_Cookie"]
+                Cookie = config["Cookie"]
                 Game_BlackList = config["Game_BlackList"]
                 Enable = config["Enable"]
-                BBScookie = LoadCookie(Multi_CookiePath.format(n+1))
+                CookieCache = LoadCookie(Multi_CookiePath.format(n+1))
             except:
                 log.warning('有配置信息未能读取,请检查配置文件是否有错误或是否为最新版')
                 sys.exit()
@@ -916,11 +915,10 @@ if __name__ == '__main__':
         try:
             config = LoadConfig()
             delay = config["Delay"]
-            Game_Cookie = config["Game_Cookie"]
-            BBS_Cookie = config["BBS_Cookie"]
+            Cookie = config["Cookie"]
             Game_BlackList = config["Game_BlackList"]
             Enable = config["Enable"]
-            BBScookie = LoadCookie()
+            CookieCache = LoadCookie()
         except:
             log.warning('有配置信息未能读取,请检查配置文件是否有错误或是否为最新版')
             sys.exit()

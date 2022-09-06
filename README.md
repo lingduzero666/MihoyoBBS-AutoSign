@@ -7,25 +7,25 @@
 
 **为了大家的安全使用，请勿在B站、QQ、各大社交软件、论坛等任何公共平台传播！**
 
+
 ## 使用前请先安装第三方库
 ```shell
 pip3 install requests
 ```
+
 
 ## 使用方法
 **务必使用python3运行**  
 
 1. 下载源码
 
-2. 在config.json中填写米游社Cookie  
-    第一步： `“Game_Cookie”` 填入从 [https://bbs.mihoyo.com/ys/](https://bbs.mihoyo.com/ys/) 获取的Cookie  
-    第二步： `"BBS_Cookie"` 填入从 [https://user.mihoyo.com/](https://user.mihoyo.com/) 获取的Cookie  
-    (本人测试中出现过颠倒顺序获取cookie导致游戏签到api返回 “请从游戏内打开” 的情况，仅供参考)
+2. 在config.json中的`“Cookie”`条目内填入米游社Cookie(获取cookie方法往下翻)  
 
 3. 运行mhy.py  
     ```shell
     python3 mhy.py
     ```
+
 
 ## 多账号功能(测试中,欢迎反馈bug)
 ### 一、配置多账号功能
@@ -42,15 +42,20 @@ pip3 install requests
 ### 三、删除配置文件
 - 请一定要把配置文件和对应的cookie缓存文件一起删除掉，**并保证删除后剩余配置文件序号的连续性**
 
+
 ## 获取Cookie方法
 
 1. 打开你的浏览器,进入**无痕模式** , edge为**新建InPrivate窗口**
 
-2. 打开 **使用方法** 中指定的链接并登录
+2.  先登录 [https://bbs.mihoyo.com/ys/](https://bbs.mihoyo.com/ys/)  
+    再登录 [https://user.mihoyo.com/](https://user.mihoyo.com/)  
+    **(请严格按照步骤顺序登录,否则可能cookie不全导致功能异常)**  
+    **(请严格按照步骤顺序登录,否则可能cookie不全导致功能异常)**  
+    **(请严格按照步骤顺序登录,否则可能cookie不全导致功能异常)**
 
-3. 登录完成后按下键盘上的`F12`或右键检查以进入开发者工具,点击Console或者控制台
+3. 登录完成后按下键盘上的`F12`或右键检查以进入开发者工具,点击Console或者控制台 **(是在第二个打开的网页上操作)**
 
-4. 输入
+4. 输入以下内容
 
    ```javascript
    var cookie=document.cookie;var ask=confirm('要复制该cookie到剪贴板吗?\n\n'+cookie);if(ask==true){copy(cookie);msg=cookie}
