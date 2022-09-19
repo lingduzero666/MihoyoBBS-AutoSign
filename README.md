@@ -42,6 +42,11 @@ pip3 install requests
 ### 三、删除配置文件
 - 请一定要把配置文件和对应的cookie缓存文件一起删除掉，**并保证删除后剩余配置文件序号的连续性**
 
+## 手动更新cookie
+输入以下命令可以手动更新cookie缓存数据
+```shell
+python3 mhy.py updata
+```
 
 ## 获取Cookie方法
 

@@ -54,10 +54,13 @@ def Write(login_ticket,stuid,stoken,path=f"{PATH}/cookie.json"):
 
 def Cleared(path=f"{PATH}/cookie.json"):
     '''清空缓存cookie'''
-    params = {"login_ticket": "", "stuid": "", "stoken": ""}
-    with open(path, "w",encoding="utf-8") as r:
-        json.dump(params,r)
-        r.close()
+    if path != f"{PATH}/cookie.json":
+        os.remove(path)
+    else:
+        params = {"login_ticket": "", "stuid": "", "stoken": ""}
+        with open(path, "w",encoding="utf-8") as r:
+            json.dump(params,r)
+            r.close()
 
 def GameHeader(Referer="https://webstatic.mihoyo.com/"): #此referer为默认值
     '''游戏签到福利的header'''
@@ -129,6 +132,36 @@ def GetAllRoles():
     SleepTime()
     return data
 
+def CreateCookieCache(ConfigPath=f"{PATH}/config.json", CookiePath=f"{PATH}/cookie.json"):
+    Cookie_url  = "https://webapi.account.mihoyo.com/Api/cookie_accountinfo_by_loginticket?login_ticket={}"
+    Cookie_url2 = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={}&token_types=3&uid={}"
+
+    log.info("更新Cookie数据中......")
+    CookieCache = LoadConfig(ConfigPath)
+    if "login_ticket" in CookieCache["Cookie"]:
+        c = CookieCache["Cookie"].split(";")
+        for i in c:
+            if i.split("=")[0] == " login_ticket": #login_ticket前面的空格是必须的
+                LoginTicket = i.split("=")[1]
+                break
+        response = requests.get(url=Cookie_url.format(LoginTicket)) #获取stuid
+        data = json.loads(response.text.encode('utf-8'))
+        if "成功" in data["data"]["msg"]:
+            stuid = data["data"]["cookie_info"]["account_id"]
+            response = requests.get(url=Cookie_url2.format(LoginTicket, stuid)) #获取stoken
+            data = json.loads(response.text.encode('utf-8'))
+            stoken = data["data"]["list"][0]["token"]
+            Write(LoginTicket,stuid,stoken,CookiePath)
+            log.info('更新成功')
+        else:
+            log.warning(data)
+            log.warning('Cookie已失效,请重新抓取Cookie')
+            Cleared(CookiePath)
+            sys.exit()
+    else:
+        log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
+        sys.exit()
+
 def Multi_Load():
     '''多账号加载'''
     MultiPath = []
@@ -163,27 +196,7 @@ def Multi_Load():
             if D not in CookieOrdinal:
                 d = int(D)
                 log.info('正在为 [{}] 更新cookie数据......'.format(MultiRemark[d-1]))
-                CookieCache = LoadConfig(path=Multi_ConfigPath.format(d, MultiRemark[d-1]))
-                if "login_ticket" in CookieCache["Cookie"]:
-                    c = CookieCache["Cookie"].split(";")
-                    for i in c:
-                        if i.split("=")[0] == " login_ticket": #login_ticket前面的空格是必须的
-                            LoginTicket = i.split("=")[1]
-                            break
-                    response = requests.get(url=Cookie_url.format(LoginTicket)) #获取stuid
-                    data = json.loads(response.text.encode('utf-8'))
-                    if "成功" in data["data"]["msg"]:
-                        stuid = data["data"]["cookie_info"]["account_id"]
-                        response = requests.get(url=Cookie_url2.format(LoginTicket, stuid)) #获取stoken
-                        data = json.loads(response.text.encode('utf-8'))
-                        stoken = data["data"]["list"][0]["token"]
-                        Write(LoginTicket,stuid,stoken,Multi_CookiePath.format(d))
-                        log.info('更新成功')
-                    else:
-                        log.warning(data)
-                        log.warning('Cookie已失效,请重新抓取Cookie')
-                else:
-                    log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
+                CreateCookieCache(ConfigPath=Multi_ConfigPath.format(d, MultiRemark[d-1]), CookiePath=Multi_CookiePath.format(d))
                 time.sleep(random.randint(2,5)) #写死休眠时间,防止触发风控
     return MultiPath,MultiRemark,TotalConfig
 
@@ -377,7 +390,7 @@ class MihoyoBBS():
         self.CheckMission = True #检查任务完成情况
 
         if self.LoginTicket == "" or self.stuid == "" or self.stoken == "":
-            self.CreateCookieCache()
+            CreateCookieCache()
 
         self.headers = {
             "Cookie": f'login_ticket={self.LoginTicket};stuid={self.stuid};stoken={self.stoken}',
@@ -396,32 +409,6 @@ class MihoyoBBS():
         }
 
         self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
-
-    def CreateCookieCache(self):
-        log.info("更新Cookie数据中......")
-        if "login_ticket" in Cookie:
-            c = Cookie.split(";")
-            for i in c:
-                if i.split("=")[0] == " login_ticket": #login_ticket前面的空格是必须的
-                    self.LoginTicket = i.split("=")[1]
-                    break
-            response = requests.get(url=self.Cookie_url.format(self.LoginTicket)) #获取stuid
-            data = json.loads(response.text.encode('utf-8'))
-            if "成功" in data["data"]["msg"]:
-                self.stuid = data["data"]["cookie_info"]["account_id"]
-                response = requests.get(url=self.Cookie_url2.format(self.LoginTicket, self.stuid)) #获取stoken
-                data = json.loads(response.text.encode('utf-8'))
-                self.stoken = data["data"]["list"][0]["token"]
-                Write(self.LoginTicket,self.stuid,self.stoken)
-            else:
-                log.warning(data)
-                log.warning('Cookie已失效,请重新抓取Cookie')
-                Cleared()
-                sys.exit()
-        else:
-            log.warning('Cookie中没有"login_ticket"数据,请重新抓取Cookie!')
-            Cleared()
-            sys.exit()
 
     def UserBusinesses(self):
         log.info('获取米游社"我的频道"信息中......')
@@ -878,10 +865,6 @@ def StartRun():
                 BH3_Checkin().run(list) #崩坏3福利补给
             elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:
                 YS_Checkin().run(list) #原神每日签到
-    else:
-        if Cookie == "":
-            log.info('虽然关闭了所有的游戏签到,但是米游币签到结果校验需要用到"Cookie",请务必填写')
-            sys.exit()
 
     #米游社签到
     if Enable["BBS"] or Enable["ChannelUpVote"] or Enable["ChannelPublish"] or Enable["DeleteOldPost"]:
@@ -889,7 +872,16 @@ def StartRun():
 
 
 if __name__ == '__main__':
-    if "multi" in sys.argv: #多账号
+    if "updata" in sys.argv: #手动更新cookie
+        log.info('请选择为哪个模式的config更新cookie(1:单账号  2:多账号)')
+        mode = int(input("请输入对应的数字："))
+        if mode == 1:
+            CreateCookieCache()
+        elif mode == 2:
+            number = int(input('请输入多账号config文件的序号：'))
+            CreateCookieCache(ConfigPath=glob.glob(Multi_ConfigPath.format(number,"*"))[0], CookiePath=Multi_CookiePath.format(number))
+
+    elif "multi" in sys.argv: #多账号
         log.info(f'欢迎使用 MihoyoBBS-AutoSign {VERSION} (多账号版)')
 
         #读取多账号配置
