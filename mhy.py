@@ -25,7 +25,8 @@ logging.basicConfig(
     datefmt='%Y-%m-%dT%H:%M:%S')
 
 #全局变量
-VERSION = "v1.4.1"
+VERSION = "v1.5.0"
+IdentifyChar = "⨌" #删帖用的特殊识别符号
 PATH = os.path.dirname(os.path.realpath(__file__))
 Multi_ConfigPath = PATH + "/MultiConfig/{}-config-{}.json"
 Multi_CookiePath = PATH + "/MultiConfig/{}-cookie.json"
@@ -762,8 +763,8 @@ class MihoyoBBS():
                 for list in data["data"]["list"]:
                     PostSubject = list["post"]["post"]["subject"]
                     #双重识别,避免误删
-                    if "⨌" in PostSubject:
-                        if PostSubject.split("⨌")[-1] == "(1/2)" or PostSubject.split("⨌")[-1] == "(2/2)":
+                    if IdentifyChar in PostSubject:
+                        if PostSubject.split(IdentifyChar)[-1] == "(1/2)" or PostSubject.split(IdentifyChar)[-1] == "(2/2)":
                             SelfPost.append(list["post"]["post"]["post_id"])
             else:
                 log.info(data)
@@ -787,7 +788,7 @@ class MihoyoBBS():
         '''执行各频道发帖&发评论任务'''
         for i in range(2): #发帖2篇
             subject,content,reply1,reply2 = self.RandomElements()
-            subject += " ⨌({}/2)".format(i+1) #⨌此特殊符号用于删帖时作特征识别
+            subject += " {}({}/2)".format(IdentifyChar, i+1)
 
             #写入草稿
             DraftId = self.Draft(subject,content,channel["forumId"],channel["id"])
