@@ -4,6 +4,7 @@
     "Delay": true, 
 
     "Enable": {
+        "BH2": true,
         "BH3": true,
         "YS": true,
         "BBS": true,
@@ -13,6 +14,7 @@
     },
 
     "Game_BlackList": {
+        "BH2": [""],
         "BH3": [""], 
         "YS": [""]
     }

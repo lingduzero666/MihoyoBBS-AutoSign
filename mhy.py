@@ -25,7 +25,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%dT%H:%M:%S')
 
 #全局变量
-VERSION = "v1.5.0"
+VERSION = "v1.6.0"
 IdentifyChar = "⨌" #删帖用的特殊识别符号
 PATH = os.path.dirname(os.path.realpath(__file__))
 Multi_ConfigPath = PATH + "/MultiConfig/{}-config-{}.json"
@@ -200,6 +200,66 @@ def Multi_Load():
                 CreateCookieCache(ConfigPath=Multi_ConfigPath.format(d, MultiRemark[d-1]), CookiePath=Multi_CookiePath.format(d))
                 time.sleep(random.randint(2,5)) #写死休眠时间,防止触发风控
     return MultiPath,MultiRemark,TotalConfig
+
+class BH2_Checkin():
+
+    #api
+    Referer_url     = 'https://webstatic.mihoyo.com/'
+    Sign_url        = 'https://api-takumi.mihoyo.com/event/luna/sign' #POST json
+    Check_url       = 'https://api-takumi.mihoyo.com/event/luna/info?lang=zh-cn&act_id={}&region={}&uid={}'
+
+    #value
+    Act_id          = 'e202203291431091'
+    Game_biz        = 'bh2_cn'
+
+    def bh2_sign(self,region,uid):
+        sign_data = {
+            "act_id": self.Act_id,
+            "region": region,
+            "uid": uid,
+            "lang": "zh-cn"
+        }
+        log.info('崩坏2: 正在为舰长「{}」签到'.format(uid))
+        response = requests.post(url=self.Sign_url, headers=GameHeader(Referer=self.Referer_url), json=sign_data)
+        data = json.loads(response.text.encode('utf-8'))
+        SleepTime()
+        return data
+
+    def run(self,list):
+        region = list["region"]
+        uid = list["game_uid"]
+
+        for i in range(3):
+            sign_data = self.bh2_sign(region,uid) #签到并返回数据
+            try:
+                #从专门的api检查签到结果
+                response = requests.get(url=self.Check_url.format(self.Act_id,region,uid), headers=GameHeader())
+                data = json.loads(response.text.encode('utf-8'))
+                if "OK" in sign_data["message"]:
+                    if data["data"]["is_sign"]: # "is_sign" 为布尔值
+                        log.info('崩坏2: 签到成功')
+                        break
+                    else:
+                        log.info('崩坏2: 第 {} 次请求成功但并未签上'.format(i + 1))
+                elif "已签到" in sign_data["message"]:
+                    log.info('崩坏2: 重复签到')
+                    break
+                else:
+                    log.warning(sign_data)
+                    log.warning('崩坏2: 签到出现错误,请及时检查')
+                    break
+            except:
+                #直接输出签到api返回的签到结果
+                log.warning(data)
+                log.warning("未能从检查api得到签到结果,下面为签到api返回的结果,有概率漏签")
+                if "OK" in sign_data["message"]:
+                    log.info('崩坏2: 签到成功')
+                elif '已签到' in sign_data["message"]:
+                    log.info('崩坏2: 重复签到')
+                else:
+                    log.warning(sign_data)
+                    log.warning('崩坏2: 签到出现错误,请及时检查')
+                break
 
 class BH3_Checkin():
 
@@ -471,7 +531,7 @@ class MihoyoBBS():
             else:
                 log.warning(data)            
                 log.warning("浏览帖子出现问题,请及时检查")
-                sys.exit()
+                Count = 114514 #手动定义数值达到退出循环的效果
             #检查任务是否完成
             if Count >= 3 and self.CheckMission:
                 try:
@@ -494,6 +554,8 @@ class MihoyoBBS():
             else:
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 3:
+                if Count == 114514:
+                    Count = ' ( !!出现错误!! ) '
                 log.warning('尝试了{}篇帖子,浏览成功{}篇,未能完成任务'.format(Count,Success))
 
         #点赞5篇
@@ -512,7 +574,7 @@ class MihoyoBBS():
             else:
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
-                sys.exit()
+                Count = 114514 #手动定义数值达到退出循环的效果
             #检查任务是否完成
             if Count >= 5 and self.CheckMission:
                 response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader()) #使用的是游戏签到header!!!
@@ -531,6 +593,8 @@ class MihoyoBBS():
             else:
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 5:
+                if Count == 114514:
+                    Count = ' ( !!出现错误!! ) '
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
 
         #分享1篇
@@ -549,7 +613,7 @@ class MihoyoBBS():
             else:
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
-                sys.exit()
+                Count = 114514 #手动定义数值达到退出循环的效果
             #检查任务是否完成
             if Count >= 1 and self.CheckMission:
                 response = requests.get(url=self.Missions_url + "point_sn=myb", headers=GameHeader()) #使用的是游戏签到header!!!
@@ -568,7 +632,9 @@ class MihoyoBBS():
             else:
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 1:
-                log.warning('尝试分享了{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count))
+                if Count == 114514:
+                    Count = ' !!出现错误!! '
+                log.warning('尝试了分享{}篇帖子,居然一篇都没有成功,未能完成任务'.format(Count))
 
     def Channel_UpVote(self,channel):
         '''各频道点赞任务'''
@@ -598,7 +664,7 @@ class MihoyoBBS():
             else:
                 log.warning(data)            
                 log.warning("点赞出现问题,请及时检查")
-                sys.exit()
+                Count = 114514 #手动定义数值达到退出循环的效果
             #检查任务是否完成
             if Count >= 10 and self.CheckMission:
                 try:
@@ -620,8 +686,9 @@ class MihoyoBBS():
             else:
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 10:
+                if Count == 114514:
+                    Count = ' ( !!出现错误!! ) '
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
-                sys.exit()
 
     #以下为实验性功能
     #↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
@@ -860,8 +927,10 @@ def StartRun():
         log.info('!!!您已开启实验性功能,可能存在未知bug,且会有各种不可预估的风险(如禁言,封号),请酌情选择使用!!!')
 
     #游戏每日签到
-    if Enable["BH3"] or Enable["YS"]:
+    if Enable["BH2"] or Enable["BH3"] or Enable["YS"]:
         for list in GetAllRoles()["data"]["list"]:
+            if list["game_biz"] == "bh2_cn" and list["game_uid"] not in Game_BlackList["BH2"] and Enable["BH2"]:
+                BH2_Checkin().run(list) #崩坏2每日签到
             if list["game_biz"] == "bh3_cn" and list["game_uid"] not in Game_BlackList["BH3"] and Enable["BH3"]:
                 BH3_Checkin().run(list) #崩坏3福利补给
             elif list["game_biz"] == "hk4e_cn" and list["game_uid"] not in Game_BlackList["YS"] and Enable["YS"]:

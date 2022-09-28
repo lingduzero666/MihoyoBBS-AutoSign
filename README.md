@@ -1,5 +1,5 @@
 # MihoyoBBS-AutoSign
-自动完成 『崩坏3福利补给』『原神签到福利』『米游币任务』『频道升级任务』  
+支持完成以下任务:『崩坏2每日签到』『崩坏3福利补给』『原神签到福利』『米游币任务』『频道升级任务』  
 现已支持多账号(测试中,欢迎反馈bug)
 
 本项目"米游币签到"功能的部分内容参考了[XiaoMiku01/miyoubiAuto](https://github.com/XiaoMiku01/miyoubiAuto)进行编写  
