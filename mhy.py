@@ -12,9 +12,9 @@ import os
 import sys
 
 #重要参数
-Salt_BBS = 'ZSHlXeQUBis52qD1kEgKt5lUYed4b7Bb' #米游社签到salt
-Salt_Discuss = 't0qEgfub6cvueAPgR5m9aQWWVciEer7v' #米游社讨论区专用salt
-mysVersion = "2.35.2" #米游社版本
+Salt_Sign = 'PVeGWIZACpxXZ1ibMVJPi9inCY4Nd4y2' #米游社签到salt
+Salt_BBS = 't0qEgfub6cvueAPgR5m9aQWWVciEer7v' #米游社讨论区专用salt
+mysVersion = "2.38.1" #米游社版本
 mysClient_type = '2' # 1:ios 2:Android
 
 #日志输出配置
@@ -25,7 +25,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%dT%H:%M:%S')
 
 #全局变量
-VERSION = "v1.6.0"
+VERSION = "v1.6.1"
 IdentifyChar = "⨌" #删帖用的特殊识别符号
 PATH = os.path.dirname(os.path.realpath(__file__))
 Multi_ConfigPath = PATH + "/MultiConfig/{}-config-{}.json"
@@ -67,8 +67,7 @@ def GameHeader(Referer="https://webstatic.mihoyo.com/"): #此referer为默认值
     '''游戏签到福利的header'''
     headers = {
         'Cookie': Cookie,
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; vivo-s7 Build/RKQ1.211119.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Version/4.0 Chrome/103.0.5060.71 Mobile Safari/537.36 miHoYoBBS/2.35.2',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; vivo-s7 Build/RKQ1.211119.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/105.0.5195.79 Mobile Safari/537.36 miHoYoBBS/2.38.1',
         'Referer': Referer,
         'DS': DS_BBS(),
         'Accept': 'application/json, text/plain, */*',
@@ -104,7 +103,7 @@ def randomStr(n):
 
 def DS_BBS():
     '''生成米游社DS'''
-    n = Salt_BBS
+    n = Salt_Sign
     i = str(int(time.time()))
     r = randomStr(6)
     c = md5("salt=" + n + "&t=" + i + "&r=" + r)
@@ -112,7 +111,7 @@ def DS_BBS():
 
 def DS_discuss(gid):
     '''生成讨论区DS'''
-    n = Salt_Discuss
+    n = Salt_BBS
     i = str(int(time.time()))
     r = str(random.randint(100001, 200000))
     b = json.dumps({"gids": gid})
@@ -472,7 +471,7 @@ class MihoyoBBS():
         self.BBS_WhiteList = self.UserBusinesses()["data"]["businesses"]
 
     def UserBusinesses(self):
-        log.info('获取米游社"我的频道"信息中......')
+        log.info('获取米游社 “我的频道” 信息中......')
         self.headers["DS"] = DS_BBS()
         response = requests.get(url=self.UserBusinesses_url.format(self.stuid), headers=self.headers)
         data = json.loads(response.text.encode('utf-8'))
@@ -484,7 +483,7 @@ class MihoyoBBS():
             Cleared()
         else:
             log.warning(data)
-            log.warning('获取账号"我的频道"信息失败,退出签到')
+            log.warning('获取账号 “我的频道” 信息失败,退出签到')
             sys.exit()
 
     def SignIn(self):
@@ -555,7 +554,7 @@ class MihoyoBBS():
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 3:
                 if Count == 114514:
-                    Count = ' ( !!出现错误!! ) '
+                    Count = ' "( !!出现错误!! )" '
                 log.warning('尝试了{}篇帖子,浏览成功{}篇,未能完成任务'.format(Count,Success))
 
         #点赞5篇
@@ -594,7 +593,7 @@ class MihoyoBBS():
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 5:
                 if Count == 114514:
-                    Count = ' ( !!出现错误!! ) '
+                    Count = ' "( !!出现错误!! )" '
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
 
         #分享1篇
@@ -687,7 +686,7 @@ class MihoyoBBS():
                 log.info('未能从检查api得到签到结果,有概率漏签')
             if Success < 10:
                 if Count == 114514:
-                    Count = ' ( !!出现错误!! ) '
+                    Count = ' "( !!出现错误!! )" '
                 log.warning('尝试了{}篇帖子,点赞成功{}篇,未能完成任务'.format(Count,Success))
 
     #以下为实验性功能
@@ -878,7 +877,7 @@ class MihoyoBBS():
                 Reply2Data = self.ReleaseReply(PostId,reply2)
 
             #改为全角,保证对齐,强迫症直呼满足
-            PerfectName = channel["name"] #加入中间参数，避免修改源数据
+            PerfectName = channel["name"] #传递给中间参数，避免修改源数据
             if PerfectName == "崩坏3":
                 PerfectName = "崩坏３"
             elif PerfectName == "崩坏2":
